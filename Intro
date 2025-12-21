@@ -1,0 +1,1204 @@
+--// avenir.CC
+-- 7 Second Intro with Audio its ass cuz no audio
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+
+
+
+local Config = {
+	Enabled = true,
+	
+	-- Branding
+	LogoAsset = "rbxassetid://96557437744577",
+	Title = "avenir",
+	TitleAccent = ".CC",
+	Subtitle = "INITIALIZING SYSTEM",
+	AudioId = "rbxassetid://88817247634729",
+	
+	-- Blue Color Palette
+	Primary = Color3.fromRGB(0, 170, 255),
+	PrimaryDark = Color3.fromRGB(0, 100, 180),
+	PrimaryLight = Color3.fromRGB(100, 200, 255),
+	Accent = Color3.fromRGB(0, 220, 255),
+	White = Color3.fromRGB(230, 245, 255),
+	Background = Color3.fromRGB(0, 0, 0),
+	
+	
+	IntroDuration = 7,
+	
+	-- Effects
+	EnableRain = true,
+	EnableGlow = true,
+	RainDropCount = 100,
+	RainStreakCount = 80,
+	SplashCount = 25,
+}
+
+if not Config.Enabled then return end
+
+-- ═══════════════════════════════════════════════════════════════
+--                         UTILITIES
+-- ═══════════════════════════════════════════════════════════════
+
+local AllElements = {}
+
+local function Tween(instance, duration, properties, style, direction)
+	style = style or Enum.EasingStyle.Quint
+	direction = direction or Enum.EasingDirection.Out
+	
+	local tween = TweenService:Create(
+		instance,
+		TweenInfo.new(duration, style, direction),
+		properties
+	)
+	tween:Play()
+	return tween
+end
+
+local function CreateInstance(className, properties)
+	local instance = Instance.new(className)
+	for prop, value in pairs(properties) do
+		if prop ~= "Parent" then
+			instance[prop] = value
+		end
+	end
+	if properties.Parent then
+		instance.Parent = properties.Parent
+	end
+	table.insert(AllElements, instance)
+	return instance
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--                      AUDIO SETUP
+-- ═══════════════════════════════════════════════════════════════
+
+local IntroSound = CreateInstance("Sound", {
+	Parent = SoundService,
+	SoundId = Config.AudioId,
+	Volume = 0,
+	PlaybackSpeed = 1,
+	Looped = false,
+})
+
+-- ═══════════════════════════════════════════════════════════════
+--                      LIGHTING EFFECTS
+-- ═══════════════════════════════════════════════════════════════
+
+local Effects = {
+	ColorCorrection = CreateInstance("ColorCorrectionEffect", {
+		Parent = Lighting,
+		Brightness = -0.1,
+		Contrast = 0.15,
+		Saturation = -0.2,
+		TintColor = Color3.fromRGB(200, 220, 255),
+	}),
+	
+	Blur = CreateInstance("BlurEffect", {
+		Parent = Lighting,
+		Size = 0,
+	}),
+	
+	Bloom = CreateInstance("BloomEffect", {
+		Parent = Lighting,
+		Intensity = 0,
+		Size = 45,
+		Threshold = 0.8,
+	}),
+}
+
+-- ═══════════════════════════════════════════════════════════════
+--                         GUI SETUP
+-- ═══════════════════════════════════════════════════════════════
+
+local ScreenGui = CreateInstance("ScreenGui", {
+	Name = "AvenirIntro",
+	Parent = game:GetService("CoreGui"),
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	IgnoreGuiInset = true,
+	ResetOnSpawn = false,
+})
+
+-- ═══════════════════════════════════════════════════════════════
+--                      BLACK BACKGROUND
+-- ═══════════════════════════════════════════════════════════════
+
+local Background = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "Background",
+	BackgroundColor3 = Config.Background,
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	BorderSizePixel = 0,
+	ZIndex = 1,
+})
+
+-- Subtle blue ambient at edges
+local AmbientGlow = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "AmbientGlow",
+	BackgroundColor3 = Config.Primary,
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	BorderSizePixel = 0,
+	ZIndex = 2,
+})
+
+CreateInstance("UIGradient", {
+	Parent = AmbientGlow,
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Config.PrimaryDark),
+		ColorSequenceKeypoint.new(0.3, Config.Background),
+		ColorSequenceKeypoint.new(0.7, Config.Background),
+		ColorSequenceKeypoint.new(1, Config.PrimaryDark),
+	}),
+	Rotation = 90,
+})
+
+-- ═══════════════════════════════════════════════════════════════
+--                    RAIN SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+
+local RainDrops = {}
+local RainStreaks = {}
+local Splashes = {}
+
+if Config.EnableRain then
+	local RainContainer = CreateInstance("Frame", {
+		Parent = ScreenGui,
+		Name = "RainContainer",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0),
+		ClipsDescendants = true,
+		ZIndex = 5,
+	})
+	
+	-- Rain streaks (long thin lines)
+	for i = 1, Config.RainStreakCount do
+		local length = math.random(40, 120)
+		local width = math.random(1, 2)
+		
+		local streak = CreateInstance("Frame", {
+			Parent = RainContainer,
+			Name = "Streak_" .. i,
+			BackgroundColor3 = Config.PrimaryLight,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0, width, 0, length),
+			Position = UDim2.new(math.random(), 0, -0.2, 0),
+			Rotation = math.random(-5, 5),
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		})
+		
+		CreateInstance("UIGradient", {
+			Parent = streak,
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Config.White),
+				ColorSequenceKeypoint.new(0.5, Config.Primary),
+				ColorSequenceKeypoint.new(1, Config.PrimaryDark),
+			}),
+			Rotation = 180,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.3),
+				NumberSequenceKeypoint.new(0.5, 0.5),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		})
+		
+		table.insert(RainStreaks, {
+			Frame = streak,
+			Speed = math.random(800, 1500) / 1000,
+			StartX = streak.Position.X.Scale,
+		})
+	end
+	
+	-- Rain drops (small dots)
+	for i = 1, Config.RainDropCount do
+		local size = math.random(2, 5)
+		
+		local drop = CreateInstance("Frame", {
+			Parent = RainContainer,
+			Name = "Drop_" .. i,
+			BackgroundColor3 = Config.Primary,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0, size, 0, size * 2),
+			Position = UDim2.new(math.random(), 0, math.random() - 0.5, 0),
+			BorderSizePixel = 0,
+			ZIndex = 6,
+		})
+		
+		CreateInstance("UICorner", {
+			Parent = drop,
+			CornerRadius = UDim.new(1, 0),
+		})
+		
+		table.insert(RainDrops, {
+			Frame = drop,
+			Speed = math.random(600, 1200) / 1000,
+			Sway = math.random(-20, 20) / 10000,
+		})
+	end
+	
+	-- Splash container (bottom of screen)
+	local SplashContainer = CreateInstance("Frame", {
+		Parent = ScreenGui,
+		Name = "SplashContainer",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0.15, 0),
+		Position = UDim2.new(0, 0, 0.85, 0),
+		ZIndex = 7,
+	})
+	
+	-- Ground splash effects
+	for i = 1, Config.SplashCount do
+		local splash = CreateInstance("Frame", {
+			Parent = SplashContainer,
+			Name = "Splash_" .. i,
+			BackgroundColor3 = Config.Primary,
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Size = UDim2.new(0, 0, 0, 0),
+			Position = UDim2.new(math.random(), 0, math.random(), 0),
+			BorderSizePixel = 0,
+			ZIndex = 7,
+		})
+		
+		CreateInstance("UICorner", {
+			Parent = splash,
+			CornerRadius = UDim.new(1, 0),
+		})
+		
+		table.insert(Splashes, {
+			Frame = splash,
+			Delay = math.random() * 3,
+			Interval = math.random(8, 20) / 10,
+			LastSplash = 0,
+		})
+	end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--                    FLOATING PARTICLES
+-- ═══════════════════════════════════════════════════════════════
+
+local Particles = {}
+local ParticleContainer = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "Particles",
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	ZIndex = 8,
+})
+
+for i = 1, 30 do
+	local size = math.random(3, 8)
+	local particle = CreateInstance("Frame", {
+		Parent = ParticleContainer,
+		Name = "Particle_" .. i,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, size, 0, size),
+		Position = UDim2.new(math.random(), 0, math.random(), 0),
+		BorderSizePixel = 0,
+		ZIndex = 8,
+	})
+	
+	CreateInstance("UICorner", {
+		Parent = particle,
+		CornerRadius = UDim.new(1, 0),
+	})
+	
+	table.insert(Particles, {
+		Frame = particle,
+		BaseX = particle.Position.X.Scale,
+		BaseY = particle.Position.Y.Scale,
+		SpeedX = math.random(5, 15) / 10,
+		SpeedY = math.random(3, 10) / 10,
+		RangeX = math.random(20, 50) / 1000,
+		RangeY = math.random(15, 40) / 1000,
+		Phase = math.random() * math.pi * 2,
+	})
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--                    HORIZONTAL SCAN LINES
+-- ═══════════════════════════════════════════════════════════════
+
+local ScanLines = {}
+local ScanContainer = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "ScanLines",
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	ClipsDescendants = true,
+	ZIndex = 9,
+})
+
+for i = 1, 3 do
+	local scanLine = CreateInstance("Frame", {
+		Parent = ScanContainer,
+		Name = "ScanLine_" .. i,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1.5, 0, 0, 2),
+		Position = UDim2.new(-0.25, 0, -0.1, 0),
+		BorderSizePixel = 0,
+		ZIndex = 9,
+	})
+	
+	CreateInstance("UIGradient", {
+		Parent = scanLine,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.4, 0.7),
+			NumberSequenceKeypoint.new(0.5, 0.5),
+			NumberSequenceKeypoint.new(0.6, 0.7),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+	})
+	
+	table.insert(ScanLines, {
+		Frame = scanLine,
+		Speed = 0.3 + (i * 0.1),
+		Delay = i * 0.8,
+	})
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--                    DIGITAL GRID OVERLAY
+-- ═══════════════════════════════════════════════════════════════
+
+local GridContainer = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "Grid",
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	ZIndex = 4,
+})
+
+local GridElements = {}
+
+-- Vertical lines
+for i = 0, 15 do
+	local line = CreateInstance("Frame", {
+		Parent = GridContainer,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 1, 1, 0),
+		Position = UDim2.new(i / 15, 0, 0, 0),
+		BorderSizePixel = 0,
+	})
+	table.insert(GridElements, line)
+end
+
+-- Horizontal lines
+for i = 0, 10 do
+	local line = CreateInstance("Frame", {
+		Parent = GridContainer,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, i / 10, 0),
+		BorderSizePixel = 0,
+	})
+	table.insert(GridElements, line)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--                    CORNER BRACKETS
+-- ═══════════════════════════════════════════════════════════════
+
+local CornerElements = {}
+
+local function CreateCornerBracket(position, rotation, name)
+	local corner = CreateInstance("Frame", {
+		Parent = ScreenGui,
+		Name = name,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0.08, 0, 0.08, 0),
+		Position = position,
+		Rotation = rotation,
+		ZIndex = 12,
+	})
+	
+	local lineH = CreateInstance("Frame", {
+		Parent = corner,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 0, 0),
+		BorderSizePixel = 0,
+	})
+	
+	local lineV = CreateInstance("Frame", {
+		Parent = corner,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 2, 1, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		BorderSizePixel = 0,
+	})
+	
+	-- Small accent dot
+	local dot = CreateInstance("Frame", {
+		Parent = corner,
+		BackgroundColor3 = Config.Accent,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 6, 0, 6),
+		Position = UDim2.new(0, -2, 0, -2),
+		BorderSizePixel = 0,
+	})
+	
+	CreateInstance("UICorner", {
+		Parent = dot,
+		CornerRadius = UDim.new(1, 0),
+	})
+	
+	table.insert(CornerElements, lineH)
+	table.insert(CornerElements, lineV)
+	table.insert(CornerElements, dot)
+	
+	return corner
+end
+
+CreateCornerBracket(UDim2.new(0.03, 0, 0.03, 0), 0, "TopLeft")
+CreateCornerBracket(UDim2.new(0.89, 0, 0.03, 0), 90, "TopRight")
+CreateCornerBracket(UDim2.new(0.03, 0, 0.89, 0), -90, "BottomLeft")
+CreateCornerBracket(UDim2.new(0.89, 0, 0.89, 0), 180, "BottomRight")
+
+-- ═══════════════════════════════════════════════════════════════
+--                    STATUS INDICATORS
+-- ═══════════════════════════════════════════════════════════════
+
+local StatusElements = {}
+
+-- Top status bar
+local TopStatus = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "TopStatus",
+	BackgroundTransparency = 1,
+	Size = UDim2.new(0.3, 0, 0.025, 0),
+	Position = UDim2.new(0.35, 0, 0.04, 0),
+	ZIndex = 12,
+})
+
+local StatusLine = CreateInstance("Frame", {
+	Parent = TopStatus,
+	BackgroundColor3 = Config.Primary,
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 1),
+	Position = UDim2.new(0, 0, 1, 0),
+	BorderSizePixel = 0,
+})
+table.insert(StatusElements, StatusLine)
+
+local StatusText = CreateInstance("TextLabel", {
+	Parent = TopStatus,
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	Font = Enum.Font.Code,
+	Text = "SYS://AVENIR.CC",
+	TextColor3 = Config.Primary,
+	TextTransparency = 1,
+	TextScaled = true,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 12,
+})
+table.insert(StatusElements, StatusText)
+
+-- Side data blocks
+local DataBlocks = {}
+
+for i = 1, 4 do
+	local block = CreateInstance("Frame", {
+		Parent = ScreenGui,
+		Name = "DataBlock_" .. i,
+		BackgroundColor3 = Config.Primary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0.015, 0, 0.04, 0),
+		Position = UDim2.new(0.05, 0, 0.25 + (i - 1) * 0.06, 0),
+		BorderSizePixel = 0,
+		ZIndex = 11,
+	})
+	
+	CreateInstance("UICorner", {
+		Parent = block,
+		CornerRadius = UDim.new(0, 2),
+	})
+	
+	table.insert(DataBlocks, block)
+end
+
+-- Right side blocks
+for i = 1, 4 do
+	local block = CreateInstance("Frame", {
+		Parent = ScreenGui,
+		Name = "DataBlockR_" .. i,
+		BackgroundColor3 = Config.Accent,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0.015, 0, 0.04, 0),
+		Position = UDim2.new(0.935, 0, 0.25 + (i - 1) * 0.06, 0),
+		BorderSizePixel = 0,
+		ZIndex = 11,
+	})
+	
+	CreateInstance("UICorner", {
+		Parent = block,
+		CornerRadius = UDim.new(0, 2),
+	})
+	
+	table.insert(DataBlocks, block)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--                      VIGNETTE
+-- ═══════════════════════════════════════════════════════════════
+
+local Vignette = CreateInstance("ImageLabel", {
+	Parent = ScreenGui,
+	Name = "Vignette",
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 1, 0),
+	Image = "rbxassetid://1039600762",
+	ImageColor3 = Color3.fromRGB(0, 5, 15),
+	ImageTransparency = 1,
+	ZIndex = 20,
+})
+
+-- ═══════════════════════════════════════════════════════════════
+--                      MAIN CONTENT
+-- ═══════════════════════════════════════════════════════════════
+
+local Container = CreateInstance("Frame", {
+	Parent = ScreenGui,
+	Name = "Container",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.5, 0),
+	Size = UDim2.new(1, 0, 1, 0),
+	ZIndex = 25,
+})
+
+-- Hexagon glow effect
+local HexGlow = CreateInstance("ImageLabel", {
+	Parent = Container,
+	Name = "HexGlow",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.45, 0),
+	Size = UDim2.new(0, 0, 0, 0),
+	Image = "rbxassetid://7912134082",
+	ImageColor3 = Config.PrimaryDark,
+	ImageTransparency = 1,
+	ZIndex = 21,
+})
+
+-- Outer glow ring
+local OuterGlow = CreateInstance("ImageLabel", {
+	Parent = Container,
+	Name = "OuterGlow",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.45, 0),
+	Size = UDim2.new(0, 0, 0, 0),
+	Image = "rbxassetid://7912134082",
+	ImageColor3 = Config.Primary,
+	ImageTransparency = 1,
+	ZIndex = 22,
+})
+
+-- Inner glow ring
+local InnerGlow = CreateInstance("ImageLabel", {
+	Parent = Container,
+	Name = "InnerGlow",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.45, 0),
+	Size = UDim2.new(0, 0, 0, 0),
+	Image = "rbxassetid://7912134082",
+	ImageColor3 = Config.Accent,
+	ImageTransparency = 1,
+	ZIndex = 23,
+})
+
+-- Logo glow
+local LogoGlow = CreateInstance("ImageLabel", {
+	Parent = Container,
+	Name = "LogoGlow",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.45, 0),
+	Size = UDim2.new(0, 0, 0, 0),
+	Image = Config.LogoAsset,
+	ImageColor3 = Config.Primary,
+	ImageTransparency = 1,
+	ZIndex = 24,
+})
+
+-- Main logo
+local Logo = CreateInstance("ImageLabel", {
+	Parent = Container,
+	Name = "Logo",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.45, 0),
+	Size = UDim2.new(0, 0, 0, 0),
+	ImageTransparency = 1,
+	Image = Config.LogoAsset,
+	ZIndex = 26,
+})
+
+-- Circular ring around logo
+local CircleRing = CreateInstance("Frame", {
+	Parent = Container,
+	Name = "CircleRing",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.45, 0),
+	Size = UDim2.new(0, 0, 0, 0),
+	ZIndex = 25,
+})
+
+CreateInstance("UICorner", {
+	Parent = CircleRing,
+	CornerRadius = UDim.new(1, 0),
+})
+
+local RingStroke = CreateInstance("UIStroke", {
+	Parent = CircleRing,
+	Color = Config.Primary,
+	Thickness = 2,
+	Transparency = 1,
+})
+
+-- Title
+local TitleContainer = CreateInstance("Frame", {
+	Parent = Container,
+	Name = "TitleContainer",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0.64, 0),
+	Size = UDim2.new(0.5, 0, 0.09, 0),
+	ZIndex = 26,
+})
+
+local TitleMain = CreateInstance("TextLabel", {
+	Parent = TitleContainer,
+	Name = "TitleMain",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(0.52, 0, 0.5, 0),
+	Size = UDim2.new(0.5, 0, 1, 0),
+	Font = Enum.Font.GothamBlack,
+	Text = Config.Title,
+	TextColor3 = Config.White,
+	TextTransparency = 1,
+	TextScaled = true,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	ZIndex = 26,
+})
+
+local TitleAccent = CreateInstance("TextLabel", {
+	Parent = TitleContainer,
+	Name = "TitleAccent",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0.52, 0, 0.5, 0),
+	Size = UDim2.new(0.5, 0, 1, 0),
+	Font = Enum.Font.GothamBlack,
+	Text = Config.TitleAccent,
+	TextColor3 = Config.Primary,
+	TextTransparency = 1,
+	TextScaled = true,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	ZIndex = 26,
+})
+
+local TitleStroke = CreateInstance("UIStroke", {
+	Parent = TitleMain,
+	Color = Config.Primary,
+	Thickness = 0,
+	Transparency = 1,
+})
+
+-- Subtitle
+local Subtitle = CreateInstance("TextLabel", {
+	Parent = Container,
+	Name = "Subtitle",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0.72, 0),
+	Size = UDim2.new(0.5, 0, 0.022, 0),
+	Font = Enum.Font.Code,
+	Text = "[ " .. Config.Subtitle .. " ]",
+	TextColor3 = Config.Primary,
+	TextTransparency = 1,
+	TextScaled = true,
+	ZIndex = 26,
+})
+
+-- Loading bar
+local LoadingBar = CreateInstance("Frame", {
+	Parent = Container,
+	Name = "LoadingBar",
+	BackgroundColor3 = Color3.fromRGB(20, 30, 40),
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0.77, 0),
+	Size = UDim2.new(0.28, 0, 0, 4),
+	BorderSizePixel = 0,
+	ZIndex = 26,
+})
+
+CreateInstance("UICorner", {
+	Parent = LoadingBar,
+	CornerRadius = UDim.new(1, 0),
+})
+
+local LoadingBarStroke = CreateInstance("UIStroke", {
+	Parent = LoadingBar,
+	Color = Config.Primary,
+	Thickness = 1,
+	Transparency = 1,
+})
+
+local LoadingFill = CreateInstance("Frame", {
+	Parent = LoadingBar,
+	Name = "Fill",
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	BackgroundTransparency = 1,
+	Size = UDim2.new(0, 0, 1, 0),
+	BorderSizePixel = 0,
+	ZIndex = 27,
+})
+
+CreateInstance("UICorner", {
+	Parent = LoadingFill,
+	CornerRadius = UDim.new(1, 0),
+})
+
+local FillGradient = CreateInstance("UIGradient", {
+	Parent = LoadingFill,
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Config.PrimaryDark),
+		ColorSequenceKeypoint.new(0.5, Config.Primary),
+		ColorSequenceKeypoint.new(1, Config.Accent),
+	}),
+})
+
+local LoadingTip = CreateInstance("Frame", {
+	Parent = LoadingFill,
+	Name = "Tip",
+	BackgroundColor3 = Config.White,
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, 0, 0.5, 0),
+	Size = UDim2.new(0, 8, 0, 8),
+	BorderSizePixel = 0,
+	ZIndex = 28,
+})
+
+CreateInstance("UICorner", {
+	Parent = LoadingTip,
+	CornerRadius = UDim.new(1, 0),
+})
+
+-- Percentage text
+local PercentText = CreateInstance("TextLabel", {
+	Parent = Container,
+	Name = "Percent",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0.80, 0),
+	Size = UDim2.new(0.1, 0, 0.025, 0),
+	Font = Enum.Font.Code,
+	Text = "0%",
+	TextColor3 = Config.Primary,
+	TextTransparency = 1,
+	TextScaled = true,
+	ZIndex = 26,
+})
+
+-- ═══════════════════════════════════════════════════════════════
+--                      ANIMATION SEQUENCE (7 SECONDS)
+-- ═══════════════════════════════════════════════════════════════
+
+local AnimationConnection
+local ElapsedTime = 0
+local LoadProgress = 0
+
+local function StartAnimation()
+	-- Start audio
+	IntroSound:Play()
+	Tween(IntroSound, 0.5, { Volume = 0.8 })
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 1: Background & Rain (0s - 1s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	Tween(Background, 0.4, { BackgroundTransparency = 0 })
+	Tween(AmbientGlow, 0.8, { BackgroundTransparency = 0.92 })
+	Tween(Vignette, 0.6, { ImageTransparency = 0.2 })
+	Tween(Effects.Blur, 0.8, { Size = 12 }, Enum.EasingStyle.Cubic)
+	
+	-- Grid fade in
+	for _, line in ipairs(GridElements) do
+		Tween(line, 1, { BackgroundTransparency = 0.95 })
+	end
+	
+	-- Rain starts
+	for _, streak in ipairs(RainStreaks) do
+		task.delay(math.random() * 0.5, function()
+			Tween(streak.Frame, 0.3, { BackgroundTransparency = 0.6 })
+		end)
+	end
+	
+	for _, drop in ipairs(RainDrops) do
+		task.delay(math.random() * 0.5, function()
+			Tween(drop.Frame, 0.3, { BackgroundTransparency = 0.5 })
+		end)
+	end
+	
+	-- Corner brackets
+	task.delay(0.3, function()
+		for _, element in ipairs(CornerElements) do
+			Tween(element, 0.6, { BackgroundTransparency = 0.3 })
+		end
+	end)
+	
+	-- Status elements
+	task.delay(0.4, function()
+		for _, element in ipairs(StatusElements) do
+			if element:IsA("TextLabel") then
+				Tween(element, 0.5, { TextTransparency = 0.4 })
+			else
+				Tween(element, 0.5, { BackgroundTransparency = 0.5 })
+			end
+		end
+	end)
+	
+	-- Data blocks
+	task.delay(0.5, function()
+		for i, block in ipairs(DataBlocks) do
+			task.delay(i * 0.05, function()
+				Tween(block, 0.4, { BackgroundTransparency = 0.4 })
+			end)
+		end
+	end)
+	
+	-- Particles
+	for _, p in ipairs(Particles) do
+		task.delay(math.random() * 0.8, function()
+			Tween(p.Frame, 0.6, { BackgroundTransparency = 0.5 })
+		end)
+	end
+	
+	task.wait(0.8)
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 2: Glow Rings (1s - 2s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	if Config.EnableGlow then
+		Tween(HexGlow, 0.8, {
+			Size = UDim2.new(1, 0, 1, 0),
+			ImageTransparency = 0.85,
+		}, Enum.EasingStyle.Exponential)
+		
+		task.wait(0.1)
+		
+		Tween(OuterGlow, 0.7, {
+			Size = UDim2.new(0.7, 0, 0.7, 0),
+			ImageTransparency = 0.6,
+		}, Enum.EasingStyle.Back)
+		
+		task.wait(0.1)
+		
+		Tween(InnerGlow, 0.6, {
+			Size = UDim2.new(0.45, 0, 0.45, 0),
+			ImageTransparency = 0.4,
+		}, Enum.EasingStyle.Back)
+		
+		Tween(CircleRing, 0.8, {
+			Size = UDim2.new(0.32, 0, 0.32, 0),
+		}, Enum.EasingStyle.Back)
+		Tween(RingStroke, 0.6, { Transparency = 0.3 })
+	end
+	
+	task.wait(0.3)
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 3: Logo (2s - 3s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	Tween(LogoGlow, 0.6, {
+		Size = UDim2.new(0.2, 0, 0.3, 0),
+		ImageTransparency = 0.4,
+	}, Enum.EasingStyle.Back)
+	
+	task.wait(0.1)
+	
+	Tween(Logo, 0.5, {
+		Size = UDim2.new(0.16, 0, 0.24, 0),
+		ImageTransparency = 0,
+	}, Enum.EasingStyle.Back)
+	
+	Tween(Effects.Bloom, 0.5, { Intensity = 0.5 })
+	
+	-- Scan lines activate
+	for _, scan in ipairs(ScanLines) do
+		Tween(scan.Frame, 0.3, { BackgroundTransparency = 0.7 })
+	end
+	
+	task.wait(0.4)
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 4: Title (3s - 3.8s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	Tween(TitleMain, 0.4, { TextTransparency = 0 }, Enum.EasingStyle.Quint)
+	task.wait(0.08)
+	Tween(TitleAccent, 0.4, { TextTransparency = 0 }, Enum.EasingStyle.Quint)
+	Tween(TitleStroke, 0.5, { Thickness = 1.5, Transparency = 0.5 })
+	
+	task.wait(0.25)
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 5: Loading Bar (3.8s - 6.2s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	Tween(Subtitle, 0.3, { TextTransparency = 0.2 })
+	Tween(LoadingBar, 0.3, { BackgroundTransparency = 0.5 })
+	Tween(LoadingBarStroke, 0.3, { Transparency = 0.4 })
+	Tween(LoadingFill, 0.2, { BackgroundTransparency = 0 })
+	Tween(LoadingTip, 0.2, { BackgroundTransparency = 0.1 })
+	Tween(PercentText, 0.3, { TextTransparency = 0.3 })
+	
+	-- Loading animation (2.4 seconds)
+	local loadTween = Tween(LoadingFill, 2.4, {
+		Size = UDim2.new(1, 0, 1, 0)
+	}, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+	
+	-- Continuous animations
+	AnimationConnection = RunService.RenderStepped:Connect(function(delta)
+		ElapsedTime = ElapsedTime + delta
+		
+		-- Update percentage
+		LoadProgress = math.min(LoadingFill.Size.X.Scale * 100, 100)
+		PercentText.Text = math.floor(LoadProgress) .. "%"
+		
+		-- Gradient animation
+		FillGradient.Offset = Vector2.new((ElapsedTime * 0.3) % 1, 0)
+		
+		-- Glow pulse
+		if Config.EnableGlow then
+			local pulse = 1 + math.sin(ElapsedTime * 3) * 0.04
+			local glowPulse = 1 + math.sin(ElapsedTime * 2) * 0.06
+			
+			InnerGlow.Size = UDim2.new(0.45 * pulse, 0, 0.45 * pulse, 0)
+			OuterGlow.Size = UDim2.new(0.7 * glowPulse, 0, 0.7 * glowPulse, 0)
+			InnerGlow.Rotation = ElapsedTime * 8
+			OuterGlow.Rotation = -ElapsedTime * 4
+			CircleRing.Rotation = ElapsedTime * 15
+		end
+		
+		-- Logo float
+		local floatY = 0.45 + math.sin(ElapsedTime * 1.5) * 0.006
+		Logo.Position = UDim2.new(0.5, 0, floatY, 0)
+		LogoGlow.Position = UDim2.new(0.5, 0, floatY, 0)
+		LogoGlow.Size = UDim2.new(0.2 + math.sin(ElapsedTime * 3) * 0.008, 0, 0.3 + math.sin(ElapsedTime * 3) * 0.012, 0)
+		
+		-- Rain animation
+		for _, streak in ipairs(RainStreaks) do
+			local frame = streak.Frame
+			local currentY = frame.Position.Y.Scale
+			local newY = currentY + streak.Speed * delta * 60
+			
+			if newY > 1.3 then
+				newY = -0.3
+			end
+			
+			frame.Position = UDim2.new(streak.StartX, 0, newY, 0)
+		end
+		
+		for _, drop in ipairs(RainDrops) do
+			local frame = drop.Frame
+			local currentY = frame.Position.Y.Scale
+			local currentX = frame.Position.X.Scale
+			local newY = currentY + drop.Speed * delta * 60
+			local newX = currentX + drop.Sway
+			
+			if newY > 1.2 then
+				newY = -0.2
+				newX = math.random()
+			end
+			
+			frame.Position = UDim2.new(newX, 0, newY, 0)
+		end
+		
+		-- Splash effects
+		for _, splash in ipairs(Splashes) do
+			splash.LastSplash = splash.LastSplash + delta
+			if splash.LastSplash > splash.Interval + splash.Delay then
+				splash.LastSplash = splash.Delay
+				splash.Frame.Position = UDim2.new(math.random(), 0, math.random(), 0)
+				splash.Frame.Size = UDim2.new(0, 0, 0, 0)
+				splash.Frame.BackgroundTransparency = 0.5
+				
+				Tween(splash.Frame, 0.4, {
+					Size = UDim2.new(0, 20, 0, 20),
+					BackgroundTransparency = 1,
+				})
+			end
+		end
+		
+		-- Particles
+		for _, p in ipairs(Particles) do
+			local newX = p.BaseX + math.sin(ElapsedTime * p.SpeedX + p.Phase) * p.RangeX
+			local newY = p.BaseY + math.cos(ElapsedTime * p.SpeedY + p.Phase) * p.RangeY
+			p.Frame.Position = UDim2.new(newX, 0, newY, 0)
+			p.Frame.BackgroundTransparency = 0.4 + math.sin(ElapsedTime * 2 + p.Phase) * 0.2
+		end
+		
+		-- Scan lines
+		for _, scan in ipairs(ScanLines) do
+			local newY = (ElapsedTime * scan.Speed + scan.Delay) % 1.4 - 0.2
+			scan.Frame.Position = UDim2.new(-0.25, 0, newY, 0)
+		end
+		
+		-- Loading tip pulse
+		local tipSize = 8 + math.sin(ElapsedTime * 10) * 2
+		LoadingTip.Size = UDim2.new(0, tipSize, 0, tipSize)
+		
+		-- Data blocks flicker
+		for i, block in ipairs(DataBlocks) do
+			local flicker = math.sin(ElapsedTime * (5 + i) + i) > 0.3
+			block.BackgroundTransparency = flicker and 0.4 or 0.7
+		end
+	end)
+	
+	loadTween.Completed:Wait()
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 6: Complete (6.2s - 6.5s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	PercentText.Text = "100%"
+	Subtitle.Text = "[ SYSTEM READY ]"
+	Tween(Subtitle, 0.2, { TextColor3 = Config.White })
+	Tween(PercentText, 0.2, { TextColor3 = Config.Accent })
+	
+	-- Flash effect
+	Tween(Effects.ColorCorrection, 0.08, { Brightness = 0.2 })
+	task.wait(0.08)
+	Tween(Effects.ColorCorrection, 0.15, { Brightness = -0.1 })
+	
+	task.wait(0.3)
+	
+	-- ═══════════════════════════════════════════════════════════
+	-- PHASE 7: Fade Out (6.5s - 7s)
+	-- ═══════════════════════════════════════════════════════════
+	
+	if AnimationConnection then
+		AnimationConnection:Disconnect()
+		AnimationConnection = nil
+	end
+	
+	-- Audio fade
+	Tween(IntroSound, 0.5, { Volume = 0 })
+	
+	-- Logo exit
+	Tween(Logo, 0.3, {
+		Size = UDim2.new(0.2, 0, 0.3, 0),
+		ImageTransparency = 1,
+	}, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	
+	Tween(LogoGlow, 0.3, { ImageTransparency = 1 })
+	
+	-- Glow fade
+	Tween(InnerGlow, 0.35, { ImageTransparency = 1 })
+	Tween(OuterGlow, 0.35, { ImageTransparency = 1 })
+	Tween(HexGlow, 0.35, { ImageTransparency = 1 })
+	Tween(RingStroke, 0.3, { Transparency = 1 })
+	
+	-- Text fade
+	Tween(TitleMain, 0.25, { TextTransparency = 1 })
+	Tween(TitleAccent, 0.25, { TextTransparency = 1 })
+	Tween(TitleStroke, 0.25, { Transparency = 1 })
+	Tween(Subtitle, 0.2, { TextTransparency = 1 })
+	Tween(PercentText, 0.2, { TextTransparency = 1 })
+	Tween(LoadingBar, 0.2, { BackgroundTransparency = 1 })
+	Tween(LoadingBarStroke, 0.2, { Transparency = 1 })
+	Tween(LoadingFill, 0.2, { BackgroundTransparency = 1 })
+	Tween(LoadingTip, 0.2, { BackgroundTransparency = 1 })
+	
+	-- Status fade
+	for _, element in ipairs(StatusElements) do
+		if element:IsA("TextLabel") then
+			Tween(element, 0.25, { TextTransparency = 1 })
+		else
+			Tween(element, 0.25, { BackgroundTransparency = 1 })
+		end
+	end
+	
+	-- Data blocks
+	for _, block in ipairs(DataBlocks) do
+		Tween(block, 0.25, { BackgroundTransparency = 1 })
+	end
+	
+	-- Corners
+	for _, element in ipairs(CornerElements) do
+		Tween(element, 0.25, { BackgroundTransparency = 1 })
+	end
+	
+	-- Rain fade
+	for _, streak in ipairs(RainStreaks) do
+		Tween(streak.Frame, 0.3, { BackgroundTransparency = 1 })
+	end
+	
+	for _, drop in ipairs(RainDrops) do
+		Tween(drop.Frame, 0.3, { BackgroundTransparency = 1 })
+	end
+	
+	-- Particles
+	for _, p in ipairs(Particles) do
+		Tween(p.Frame, 0.3, { BackgroundTransparency = 1 })
+	end
+	
+	-- Scan lines
+	for _, scan in ipairs(ScanLines) do
+		Tween(scan.Frame, 0.25, { BackgroundTransparency = 1 })
+	end
+	
+	-- Grid
+	for _, line in ipairs(GridElements) do
+		Tween(line, 0.3, { BackgroundTransparency = 1 })
+	end
+	
+	task.wait(0.25)
+	
+	-- Background
+	Tween(Background, 0.35, { BackgroundTransparency = 1 })
+	Tween(AmbientGlow, 0.35, { BackgroundTransparency = 1 })
+	Tween(Vignette, 0.3, { ImageTransparency = 1 })
+	Tween(Effects.Blur, 0.4, { Size = 0 })
+	Tween(Effects.Bloom, 0.35, { Intensity = 0 })
+	Tween(Effects.ColorCorrection, 0.35, { Saturation = 0, Contrast = 0, Brightness = 0 })
+	
+	task.wait(0.5)
+	
+	-- Cleanup
+	IntroSound:Stop()
+	IntroSound:Destroy()
+	ScreenGui:Destroy()
+	Effects.ColorCorrection:Destroy()
+	Effects.Blur:Destroy()
+	Effects.Bloom:Destroy()
+	
+end
+
+task.spawn(StartAnimation)

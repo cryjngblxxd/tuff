@@ -16,7 +16,7 @@ local Config = {
 	Title = "AVENIR",
 	TitleAccent = ".CC",
 	Subtitle = "Injecting Heroin...",
-	AudioId = "0",
+	
 	
 	-- Senbonzakura Color Palette
 	Pink = Color3.fromRGB(255, 105, 180),

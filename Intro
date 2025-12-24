@@ -1,61 +1,45 @@
 
---// AVENIR.CC Intro
-
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
-local SoundService = game:GetService("SoundService")
 
 local Config = {
 	Enabled = true,
 	
-	-- Branding
 	LogoAsset = "rbxassetid://96557437744577",
 	Title = "AVENIR",
 	TitleAccent = ".CC",
-	Subtitle = "Injecting Heroin...",
+	Subtitle = "Injecting Meth...",
+	CompletedText = "Meth Injected!",
 	
+	-- Logo Position (0.5 = center, lower = left/up, higher = right/down)
+	LogoX = 0.5,  -- 0.3 = left, 0.5 = center, 0.7 = right
+	LogoY = 0.5, -- 0.3 = up, 0.5 = center, 0.7 = down -- i added this for testing position thats why dont make it look ugly 
 	
-	-- Senbonzakura Color Palette
-	Pink = Color3.fromRGB(255, 105, 180),
-	DarkPink = Color3.fromRGB(199, 21, 133),
-	LightPink = Color3.fromRGB(255, 182, 193),
-	Black = Color3.fromRGB(0, 0, 0),
-	DarkGray = Color3.fromRGB(20, 20, 20),
+	-- Text offset from logo (in pixels)
+	TextOffsetY = 170,
+	
+	PrimaryBlue = Color3.fromRGB(0, 120, 255),
+	LightBlue = Color3.fromRGB(100, 180, 255),
+	DarkBlue = Color3.fromRGB(0, 60, 140),
+	DeepBlue = Color3.fromRGB(10, 25, 50),
+	AccentBlue = Color3.fromRGB(0, 200, 255),
+	ElectricBlue = Color3.fromRGB(0, 255, 255),
 	White = Color3.fromRGB(255, 255, 255),
-	Blood = Color3.fromRGB(138, 3, 3),
-	
-	IntroDuration = 7,
-	PetalCount = 100,
+	Black = Color3.fromRGB(5, 8, 15),
 }
 
 if not Config.Enabled then return end
 
-
-
 local function Tween(instance, duration, properties, style, direction)
 	style = style or Enum.EasingStyle.Quint
 	direction = direction or Enum.EasingDirection.Out
-	
-	local tween = TweenService:Create(
-		instance,
-		TweenInfo.new(duration, style, direction),
-		properties
-	)
+	local tween = TweenService:Create(instance, TweenInfo.new(duration, style, direction), properties)
 	tween:Play()
 	return tween
 end
-
-
-local IntroSound = Instance.new("Sound")
-IntroSound.Parent = SoundService
-IntroSound.SoundId = Config.AudioId
-IntroSound.Volume = 0
-IntroSound.PlaybackSpeed = 1
-IntroSound.Looped = false
-
 
 
 local Blur = Instance.new("BlurEffect")
@@ -67,24 +51,20 @@ ColorCorrection.Parent = Lighting
 ColorCorrection.Brightness = 0
 ColorCorrection.Contrast = 0
 ColorCorrection.Saturation = 0
-ColorCorrection.TintColor = Color3.new(1, 1, 1)
 
 local Bloom = Instance.new("BloomEffect")
 Bloom.Parent = Lighting
 Bloom.Intensity = 0
-Bloom.Size = 24
+Bloom.Size = 56
 Bloom.Threshold = 0.8
 
 
-
-
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SenbonzakuraIntro"
+ScreenGui.Name = "AvenirIntro"
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
-
 
 
 local Background = Instance.new("Frame")
@@ -92,8 +72,17 @@ Background.Parent = ScreenGui
 Background.BackgroundColor3 = Config.Black
 Background.BackgroundTransparency = 1
 Background.Size = UDim2.new(1, 0, 1, 0)
-Background.BorderSizePixel = 0
 Background.ZIndex = 1
+
+local BgGradient = Instance.new("UIGradient")
+BgGradient.Parent = Background
+BgGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Config.Black),
+	ColorSequenceKeypoint.new(0.5, Config.DeepBlue),
+	ColorSequenceKeypoint.new(1, Config.Black),
+})
+BgGradient.Rotation = 45
+
 
 local Vignette = Instance.new("ImageLabel")
 Vignette.Parent = ScreenGui
@@ -104,443 +93,627 @@ Vignette.ImageColor3 = Config.Black
 Vignette.ImageTransparency = 1
 Vignette.ZIndex = 2
 
-local GradientFrame = Instance.new("Frame")
-GradientFrame.Parent = ScreenGui
-GradientFrame.BackgroundColor3 = Config.DarkPink
-GradientFrame.BackgroundTransparency = 1
-GradientFrame.Size = UDim2.new(1, 0, 1, 0)
-GradientFrame.BorderSizePixel = 0
-GradientFrame.ZIndex = 2
 
-local Gradient = Instance.new("UIGradient")
-Gradient.Parent = GradientFrame
-Gradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Config.Black),
-	ColorSequenceKeypoint.new(0.3, Config.DarkGray),
-	ColorSequenceKeypoint.new(0.5, Config.Blood),
-	ColorSequenceKeypoint.new(0.7, Config.DarkGray),
-	ColorSequenceKeypoint.new(1, Config.Black),
-})
-Gradient.Rotation = 90
-Gradient.Transparency = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0.7),
-	NumberSequenceKeypoint.new(0.5, 0.9),
-	NumberSequenceKeypoint.new(1, 0.7),
-})
+local SlashContainer = Instance.new("Frame")
+SlashContainer.Parent = ScreenGui
+SlashContainer.BackgroundTransparency = 1
+SlashContainer.Size = UDim2.new(1, 0, 1, 0)
+SlashContainer.ZIndex = 5
 
+local function CreateSlash(angle, delay, color, thickness, speed)
+	spawn(function()
+		wait(delay)
+		
+		local slash = Instance.new("Frame")
+		slash.Parent = SlashContainer
+		slash.BackgroundColor3 = color or Config.AccentBlue
+		slash.BackgroundTransparency = 1
+		slash.Size = UDim2.new(0, 0, 0, thickness or 3)
+		slash.Position = UDim2.new(Config.LogoX, 0, Config.LogoY, 0)
+		slash.AnchorPoint = Vector2.new(0.5, 0.5)
+		slash.Rotation = angle
+		slash.BorderSizePixel = 0
+		slash.ZIndex = 5
+		
+		local slashGradient = Instance.new("UIGradient")
+		slashGradient.Parent = slash
+		slashGradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.3, 0),
+			NumberSequenceKeypoint.new(0.7, 0),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		
+		local slashGlow = Instance.new("Frame")
+		slashGlow.Parent = slash
+		slashGlow.BackgroundColor3 = color or Config.AccentBlue
+		slashGlow.BackgroundTransparency = 0.5
+		slashGlow.Size = UDim2.new(1, 0, 5, 0)
+		slashGlow.Position = UDim2.new(0, 0, 0.5, 0)
+		slashGlow.AnchorPoint = Vector2.new(0, 0.5)
+		slashGlow.BorderSizePixel = 0
+		slashGlow.ZIndex = 4
+		
+		local glowGradient = Instance.new("UIGradient")
+		glowGradient.Parent = slashGlow
+		glowGradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.3, 0.6),
+			NumberSequenceKeypoint.new(0.7, 0.6),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		
+		Tween(slash, 0.08, { BackgroundTransparency = 0 })
+		Tween(slash, speed or 0.25, { Size = UDim2.new(3, 0, 0, thickness or 3) }, Enum.EasingStyle.Quint)
+		
+		wait(speed or 0.25)
+		Tween(slash, 0.15, { BackgroundTransparency = 1 })
+		Tween(slashGlow, 0.15, { BackgroundTransparency = 1 })
+		
+		wait(0.2)
+		slash:Destroy()
+	end)
+end
 
-
-local Petals = {}
-local PetalContainer = Instance.new("Frame")
-PetalContainer.Parent = ScreenGui
-PetalContainer.BackgroundTransparency = 1
-PetalContainer.Size = UDim2.new(1, 0, 1, 0)
-PetalContainer.ClipsDescendants = true
-PetalContainer.ZIndex = 5
-
-for i = 1, Config.PetalCount do
-	local petalSize = math.random(8, 20)
+local function CreateSlashBurst()
+	local slashAngles = {-45, 45, -30, 30, -60, 60, 0, 90, -15, 15, -75, 75}
+	local colors = {Config.AccentBlue, Config.LightBlue, Config.ElectricBlue, Config.White}
 	
-	local petal = Instance.new("Frame")
-	petal.Parent = PetalContainer
-	petal.BackgroundColor3 = i % 3 == 0 and Config.Pink or i % 3 == 1 and Config.LightPink or Config.DarkPink
-	petal.BackgroundTransparency = 1
-	petal.Size = UDim2.new(0, petalSize, 0, petalSize * 0.8)
-	petal.Position = UDim2.new(math.random(), 0, math.random() - 0.5, 0)
-	petal.BorderSizePixel = 0
-	petal.ZIndex = 5 + math.random(0, 3)
-	petal.Rotation = math.random(0, 360)
+	for i, angle in ipairs(slashAngles) do
+		local color = colors[math.random(1, #colors)]
+		local thickness = math.random(2, 4)
+		local speed = math.random(20, 35) / 100
+		CreateSlash(angle, (i - 1) * 0.03, color, thickness, speed)
+	end
+end
+
+local function CreateRandomSlash()
+	local angle = math.random(-80, 80)
+	local colors = {Config.AccentBlue, Config.LightBlue, Config.ElectricBlue, Config.White}
+	local color = colors[math.random(1, #colors)]
+	local thickness = math.random(1, 3)
+	local speed = math.random(15, 30) / 100
+	CreateSlash(angle, 0, color, thickness, speed)
+end
+
+
+local CenterContainer = Instance.new("Frame")
+CenterContainer.Parent = ScreenGui
+CenterContainer.BackgroundTransparency = 1
+CenterContainer.Size = UDim2.new(0, 400, 0, 400)
+CenterContainer.Position = UDim2.new(Config.LogoX, 0, Config.LogoY, 0)
+CenterContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+CenterContainer.ZIndex = 10
+
+
+local OuterRingGlow = Instance.new("Frame")
+OuterRingGlow.Parent = CenterContainer
+OuterRingGlow.BackgroundTransparency = 1
+OuterRingGlow.Size = UDim2.new(0, 0, 0, 0)
+OuterRingGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+OuterRingGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+OuterRingGlow.ZIndex = 11
+
+local OuterRingGlowCorner = Instance.new("UICorner")
+OuterRingGlowCorner.Parent = OuterRingGlow
+OuterRingGlowCorner.CornerRadius = UDim.new(1, 0)
+
+local OuterRingGlowStroke = Instance.new("UIStroke")
+OuterRingGlowStroke.Parent = OuterRingGlow
+OuterRingGlowStroke.Color = Config.PrimaryBlue
+OuterRingGlowStroke.Thickness = 8
+OuterRingGlowStroke.Transparency = 1
+
+
+local OuterRing = Instance.new("Frame")
+OuterRing.Parent = CenterContainer
+OuterRing.BackgroundTransparency = 1
+OuterRing.Size = UDim2.new(0, 0, 0, 0)
+OuterRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+OuterRing.AnchorPoint = Vector2.new(0.5, 0.5)
+OuterRing.ZIndex = 12
+
+local OuterRingCorner = Instance.new("UICorner")
+OuterRingCorner.Parent = OuterRing
+OuterRingCorner.CornerRadius = UDim.new(1, 0)
+
+local OuterRingStroke = Instance.new("UIStroke")
+OuterRingStroke.Parent = OuterRing
+OuterRingStroke.Color = Config.AccentBlue
+OuterRingStroke.Thickness = 2
+OuterRingStroke.Transparency = 1
+
+local MiddleRing = Instance.new("Frame")
+MiddleRing.Parent = CenterContainer
+MiddleRing.BackgroundTransparency = 1
+MiddleRing.Size = UDim2.new(0, 0, 0, 0)
+MiddleRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+MiddleRing.AnchorPoint = Vector2.new(0.5, 0.5)
+MiddleRing.ZIndex = 13
+
+local MiddleRingCorner = Instance.new("UICorner")
+MiddleRingCorner.Parent = MiddleRing
+MiddleRingCorner.CornerRadius = UDim.new(1, 0)
+
+local MiddleRingStroke = Instance.new("UIStroke")
+MiddleRingStroke.Parent = MiddleRing
+MiddleRingStroke.Color = Config.LightBlue
+MiddleRingStroke.Thickness = 1.5
+MiddleRingStroke.Transparency = 1
+
+
+local InnerRing = Instance.new("Frame")
+InnerRing.Parent = CenterContainer
+InnerRing.BackgroundTransparency = 1
+InnerRing.Size = UDim2.new(0, 0, 0, 0)
+InnerRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+InnerRing.AnchorPoint = Vector2.new(0.5, 0.5)
+InnerRing.ZIndex = 14
+
+local InnerRingCorner = Instance.new("UICorner")
+InnerRingCorner.Parent = InnerRing
+InnerRingCorner.CornerRadius = UDim.new(1, 0)
+
+local InnerRingStroke = Instance.new("UIStroke")
+InnerRingStroke.Parent = InnerRing
+InnerRingStroke.Color = Config.White
+InnerRingStroke.Thickness = 1
+InnerRingStroke.Transparency = 1
+
+
+local ArcsContainer = Instance.new("Frame")
+ArcsContainer.Parent = CenterContainer
+ArcsContainer.BackgroundTransparency = 1
+ArcsContainer.Size = UDim2.new(1, 0, 1, 0)
+ArcsContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+ArcsContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+ArcsContainer.ZIndex = 15
+
+local Arcs = {}
+for i = 1, 3 do
+	local arcSize = 280 + (i * 40)
 	
-	local corner = Instance.new("UICorner")
-	corner.Parent = petal
-	corner.CornerRadius = UDim.new(0.5, 0)
+	local arc = Instance.new("Frame")
+	arc.Parent = ArcsContainer
+	arc.BackgroundTransparency = 1
+	arc.Size = UDim2.new(0, arcSize, 0, arcSize)
+	arc.Position = UDim2.new(0.5, 0, 0.5, 0)
+	arc.AnchorPoint = Vector2.new(0.5, 0.5)
+	arc.ZIndex = 15
 	
-	local petalGradient = Instance.new("UIGradient")
-	petalGradient.Parent = petal
-	petalGradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(1, Color3.new(0.8, 0.8, 0.8)),
+	local arcCorner = Instance.new("UICorner")
+	arcCorner.Parent = arc
+	arcCorner.CornerRadius = UDim.new(1, 0)
+	
+	local arcStroke = Instance.new("UIStroke")
+	arcStroke.Parent = arc
+	arcStroke.Color = i == 1 and Config.AccentBlue or i == 2 and Config.LightBlue or Config.PrimaryBlue
+	arcStroke.Thickness = 2
+	arcStroke.Transparency = 1
+	
+	local arcGradient = Instance.new("UIGradient")
+	arcGradient.Parent = arcStroke
+	arcGradient.Rotation = 0
+	arcGradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.15, 0.5),
+		NumberSequenceKeypoint.new(0.3, 1),
+		NumberSequenceKeypoint.new(0.7, 1),
+		NumberSequenceKeypoint.new(0.85, 0.5),
+		NumberSequenceKeypoint.new(1, 0),
 	})
-	petalGradient.Rotation = 45
 	
-	table.insert(Petals, {
-		Frame = petal,
-		Speed = math.random(20, 60) / 100,
-		SwaySpeed = math.random(1, 3),
-		SwayAmount = math.random(20, 50),
-		RotSpeed = math.random(-50, 50) / 100,
-		StartX = petal.Position.X.Scale,
+	table.insert(Arcs, {
+		Frame = arc,
+		Stroke = arcStroke,
+		Gradient = arcGradient,
+		Speed = (4 - i) * 25,
+		Direction = i % 2 == 0 and 1 or -1,
 	})
 end
 
 
+local LogoGlow3 = Instance.new("ImageLabel")
+LogoGlow3.Parent = CenterContainer
+LogoGlow3.BackgroundTransparency = 1
+LogoGlow3.Size = UDim2.new(0, 0, 0, 0)
+LogoGlow3.Position = UDim2.new(0.5, 0, 0.5, 0)
+LogoGlow3.AnchorPoint = Vector2.new(0.5, 0.5)
+LogoGlow3.Image = Config.LogoAsset
+LogoGlow3.ImageColor3 = Config.DarkBlue
+LogoGlow3.ImageTransparency = 1
+LogoGlow3.ScaleType = Enum.ScaleType.Fit
+LogoGlow3.ZIndex = 20
 
-local BankaiLines = {}
-local LineContainer = Instance.new("Frame")
-LineContainer.Parent = ScreenGui
-LineContainer.BackgroundTransparency = 1
-LineContainer.Size = UDim2.new(1, 0, 1, 0)
-LineContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
-LineContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-LineContainer.ZIndex = 10
+local LogoGlow2 = Instance.new("ImageLabel")
+LogoGlow2.Parent = CenterContainer
+LogoGlow2.BackgroundTransparency = 1
+LogoGlow2.Size = UDim2.new(0, 0, 0, 0)
+LogoGlow2.Position = UDim2.new(0.5, 0, 0.5, 0)
+LogoGlow2.AnchorPoint = Vector2.new(0.5, 0.5)
+LogoGlow2.Image = Config.LogoAsset
+LogoGlow2.ImageColor3 = Config.PrimaryBlue
+LogoGlow2.ImageTransparency = 1
+LogoGlow2.ScaleType = Enum.ScaleType.Fit
+LogoGlow2.ZIndex = 21
 
-for i = 1, 12 do
-	local lineFrame = Instance.new("Frame")
-	lineFrame.Parent = LineContainer
-	lineFrame.BackgroundTransparency = 1
-	lineFrame.Size = UDim2.new(0.002, 0, 2, 0)
-	lineFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-	lineFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-	lineFrame.Rotation = i * 30
-	lineFrame.ZIndex = 10
-	
-	local line = Instance.new("Frame")
-	line.Parent = lineFrame
-	line.BackgroundColor3 = Config.Pink
-	line.BackgroundTransparency = 1
-	line.Size = UDim2.new(1, 0, 1, 0)
-	line.BorderSizePixel = 0
-	
-	local lineGradient = Instance.new("UIGradient")
-	lineGradient.Parent = line
-	lineGradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.3, 0.5),
-		NumberSequenceKeypoint.new(0.5, 0),
-		NumberSequenceKeypoint.new(0.7, 0.5),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	lineGradient.Rotation = 90
-	
-	local glow = Instance.new("Frame")
-	glow.Parent = lineFrame
-	glow.BackgroundColor3 = Config.LightPink
-	glow.BackgroundTransparency = 1
-	glow.Size = UDim2.new(15, 0, 1, 0)
-	glow.Position = UDim2.new(0.5, 0, 0, 0)
-	glow.AnchorPoint = Vector2.new(0.5, 0)
-	glow.BorderSizePixel = 0
-	
-	local glowGradient = Instance.new("UIGradient")
-	glowGradient.Parent = glow
-	glowGradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.5, 0.8),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	
-	BankaiLines[i] = {
-		Container = lineFrame,
-		Main = line,
-		Glow = glow,
-		InitialRotation = i * 30
-	}
-end
-
-
-
-local Container = Instance.new("Frame")
-Container.Parent = ScreenGui
-Container.BackgroundTransparency = 1
-Container.AnchorPoint = Vector2.new(0.5, 0.5)
-Container.Position = UDim2.new(0.5, 0, 0.5, 0)
-Container.Size = UDim2.new(1, 0, 1, 0)
-Container.ZIndex = 20
-
--- Logo
-local Logo = Instance.new("ImageLabel")
-Logo.Parent = Container
-Logo.BackgroundTransparency = 1
-Logo.AnchorPoint = Vector2.new(0.5, 0.5)
-Logo.Position = UDim2.new(0.5, 0, 0.45, 0)
-Logo.Size = UDim2.new(0, 0, 0, 0)
-Logo.ImageTransparency = 1
-Logo.Image = Config.LogoAsset
-Logo.ScaleType = Enum.ScaleType.Fit
-Logo.ZIndex = 26
-
--- Logo glow
 local LogoGlow = Instance.new("ImageLabel")
-LogoGlow.Parent = Container
+LogoGlow.Parent = CenterContainer
 LogoGlow.BackgroundTransparency = 1
-LogoGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-LogoGlow.Position = UDim2.new(0.5, 0, 0.45, 0)
 LogoGlow.Size = UDim2.new(0, 0, 0, 0)
-LogoGlow.ImageTransparency = 1
+LogoGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+LogoGlow.AnchorPoint = Vector2.new(0.5, 0.5)
 LogoGlow.Image = Config.LogoAsset
-LogoGlow.ImageColor3 = Config.Pink
+LogoGlow.ImageColor3 = Config.LightBlue
+LogoGlow.ImageTransparency = 1
 LogoGlow.ScaleType = Enum.ScaleType.Fit
-LogoGlow.ZIndex = 25
+LogoGlow.ZIndex = 22
 
--- Title
-local TitleFrame = Instance.new("Frame")
-TitleFrame.Parent = Container
-TitleFrame.BackgroundTransparency = 1
-TitleFrame.AnchorPoint = Vector2.new(0.5, 0)
-TitleFrame.Position = UDim2.new(0.5, 0, 0.65, 0)
-TitleFrame.Size = UDim2.new(0.5, 0, 0.08, 0)
-TitleFrame.ZIndex = 27
+local Logo = Instance.new("ImageLabel")
+Logo.Parent = CenterContainer
+Logo.BackgroundTransparency = 1
+Logo.Size = UDim2.new(0, 0, 0, 0)
+Logo.Position = UDim2.new(0.5, 0, 0.5, 0)
+Logo.AnchorPoint = Vector2.new(0.5, 0.5)
+Logo.Image = Config.LogoAsset
+Logo.ImageTransparency = 1
+Logo.ScaleType = Enum.ScaleType.Fit
+Logo.ZIndex = 25
+
+
+local TextContainer = Instance.new("Frame")
+TextContainer.Parent = ScreenGui
+TextContainer.BackgroundTransparency = 1
+TextContainer.Size = UDim2.new(0, 300, 0, 120)
+TextContainer.Position = UDim2.new(Config.LogoX, 0, Config.LogoY, Config.TextOffsetY)
+TextContainer.AnchorPoint = Vector2.new(0.5, 0)
+TextContainer.ZIndex = 30
+
+
+local TitleContainer = Instance.new("Frame")
+TitleContainer.Parent = TextContainer
+TitleContainer.BackgroundTransparency = 1
+TitleContainer.Size = UDim2.new(1, 0, 0, 50)
+TitleContainer.Position = UDim2.new(0.5, 0, 0, 0)
+TitleContainer.AnchorPoint = Vector2.new(0.5, 0)
+TitleContainer.ZIndex = 30
+
+local TitleLayout = Instance.new("UIListLayout")
+TitleLayout.Parent = TitleContainer
+TitleLayout.FillDirection = Enum.FillDirection.Horizontal
+TitleLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TitleLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+TitleLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TitleLayout.Padding = UDim.new(0, 0)
 
 local TitleMain = Instance.new("TextLabel")
-TitleMain.Parent = TitleFrame
+TitleMain.Parent = TitleContainer
 TitleMain.BackgroundTransparency = 1
-TitleMain.AnchorPoint = Vector2.new(1, 0.5)
-TitleMain.Position = UDim2.new(0.5, -2, 0.5, 0)
-TitleMain.Size = UDim2.new(0.5, 0, 1, 0)
-TitleMain.Font = Enum.Font.GothamBold
+TitleMain.Size = UDim2.new(0, 0, 1, 0)
+TitleMain.AutomaticSize = Enum.AutomaticSize.X
+TitleMain.Font = Enum.Font.GothamBlack
 TitleMain.Text = Config.Title
 TitleMain.TextColor3 = Config.White
 TitleMain.TextTransparency = 1
-TitleMain.TextScaled = true
-TitleMain.TextXAlignment = Enum.TextXAlignment.Right
-TitleMain.ZIndex = 27
+TitleMain.TextSize = 42
+TitleMain.LayoutOrder = 1
+TitleMain.ZIndex = 30
 
 local TitleStroke = Instance.new("UIStroke")
 TitleStroke.Parent = TitleMain
-TitleStroke.Color = Config.Pink
+TitleStroke.Color = Config.PrimaryBlue
 TitleStroke.Thickness = 0
 TitleStroke.Transparency = 1
 
 local TitleAccent = Instance.new("TextLabel")
-TitleAccent.Parent = TitleFrame
+TitleAccent.Parent = TitleContainer
 TitleAccent.BackgroundTransparency = 1
-TitleAccent.AnchorPoint = Vector2.new(0, 0.5)
-TitleAccent.Position = UDim2.new(0.5, 2, 0.5, 0)
-TitleAccent.Size = UDim2.new(0.5, 0, 1, 0)
-TitleAccent.Font = Enum.Font.GothamBold
+TitleAccent.Size = UDim2.new(0, 0, 1, 0)
+TitleAccent.AutomaticSize = Enum.AutomaticSize.X
+TitleAccent.Font = Enum.Font.GothamBlack
 TitleAccent.Text = Config.TitleAccent
-TitleAccent.TextColor3 = Config.Pink
+TitleAccent.TextColor3 = Config.AccentBlue
 TitleAccent.TextTransparency = 1
-TitleAccent.TextScaled = true
-TitleAccent.TextXAlignment = Enum.TextXAlignment.Left
-TitleAccent.ZIndex = 27
+TitleAccent.TextSize = 42
+TitleAccent.LayoutOrder = 2
+TitleAccent.ZIndex = 30
 
--- Subtitle
+local AccentStroke = Instance.new("UIStroke")
+AccentStroke.Parent = TitleAccent
+AccentStroke.Color = Config.LightBlue
+AccentStroke.Thickness = 0
+AccentStroke.Transparency = 1
+
+
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Parent = Container
+Subtitle.Parent = TextContainer
 Subtitle.BackgroundTransparency = 1
+Subtitle.Size = UDim2.new(1, 0, 0, 20)
+Subtitle.Position = UDim2.new(0.5, 0, 0, 55)
 Subtitle.AnchorPoint = Vector2.new(0.5, 0)
-Subtitle.Position = UDim2.new(0.5, 0, 0.73, 0)
-Subtitle.Size = UDim2.new(0.5, 0, 0.02, 0)
-Subtitle.Font = Enum.Font.Gotham
+Subtitle.Font = Enum.Font.GothamMedium
 Subtitle.Text = Config.Subtitle
-Subtitle.TextColor3 = Config.DarkPink
+Subtitle.TextColor3 = Config.LightBlue
 Subtitle.TextTransparency = 1
-Subtitle.TextScaled = true
-Subtitle.ZIndex = 27
+Subtitle.TextSize = 16
+Subtitle.ZIndex = 30
 
--- Loading bar
-local LoadingBar = Instance.new("Frame")
-LoadingBar.Parent = Container
-LoadingBar.BackgroundColor3 = Config.DarkGray
-LoadingBar.BackgroundTransparency = 1
-LoadingBar.AnchorPoint = Vector2.new(0.5, 0)
-LoadingBar.Position = UDim2.new(0.5, 0, 0.77, 0)
-LoadingBar.Size = UDim2.new(0.3, 0, 0.004, 0)
-LoadingBar.BorderSizePixel = 0
-LoadingBar.ZIndex = 27
+
+local LoadingOuter = Instance.new("Frame")
+LoadingOuter.Parent = TextContainer
+LoadingOuter.BackgroundColor3 = Config.DeepBlue
+LoadingOuter.BackgroundTransparency = 1
+LoadingOuter.Size = UDim2.new(0, 200, 0, 4)
+LoadingOuter.Position = UDim2.new(0.5, 0, 0, 85)
+LoadingOuter.AnchorPoint = Vector2.new(0.5, 0)
+LoadingOuter.ZIndex = 30
+
+local LoadingOuterCorner = Instance.new("UICorner")
+LoadingOuterCorner.Parent = LoadingOuter
+LoadingOuterCorner.CornerRadius = UDim.new(1, 0)
+
+local LoadingOuterStroke = Instance.new("UIStroke")
+LoadingOuterStroke.Parent = LoadingOuter
+LoadingOuterStroke.Color = Config.PrimaryBlue
+LoadingOuterStroke.Thickness = 1
+LoadingOuterStroke.Transparency = 1
 
 local LoadingFill = Instance.new("Frame")
-LoadingFill.Parent = LoadingBar
-LoadingFill.BackgroundColor3 = Config.Pink
+LoadingFill.Parent = LoadingOuter
+LoadingFill.BackgroundColor3 = Config.AccentBlue
 LoadingFill.BackgroundTransparency = 1
 LoadingFill.Size = UDim2.new(0, 0, 1, 0)
-LoadingFill.BorderSizePixel = 0
-LoadingFill.ZIndex = 28
+LoadingFill.ZIndex = 31
 
+local LoadingFillCorner = Instance.new("UICorner")
+LoadingFillCorner.Parent = LoadingFill
+LoadingFillCorner.CornerRadius = UDim.new(1, 0)
+
+local LoadingGradient = Instance.new("UIGradient")
+LoadingGradient.Parent = LoadingFill
+LoadingGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Config.PrimaryBlue),
+	ColorSequenceKeypoint.new(0.5, Config.AccentBlue),
+	ColorSequenceKeypoint.new(1, Config.ElectricBlue),
+})
+
+local LoadingPercent = Instance.new("TextLabel")
+LoadingPercent.Parent = TextContainer
+LoadingPercent.BackgroundTransparency = 1
+LoadingPercent.Size = UDim2.new(0, 60, 0, 18)
+LoadingPercent.Position = UDim2.new(0.5, 0, 0, 95)
+LoadingPercent.AnchorPoint = Vector2.new(0.5, 0)
+LoadingPercent.Font = Enum.Font.GothamBold
+LoadingPercent.Text = "0%"
+LoadingPercent.TextColor3 = Config.AccentBlue
+LoadingPercent.TextTransparency = 1
+LoadingPercent.TextSize = 14
+LoadingPercent.ZIndex = 30
 
 
 local ElapsedTime = 0
 local Connection
+local BaseLogoSize = 160
+local LoadingProgress = 0
+local SlashesActive = false
 
 local function StartAnimation()
-	-- Start audio
-	IntroSound:Play()
-	Tween(IntroSound, 1, { Volume = 0.6 })
+	Tween(Background, 0.6, { BackgroundTransparency = 0 })
+	Tween(Vignette, 0.8, { ImageTransparency = 0.1 })
 	
-	-- Phase 1: Bankai activation
-	Tween(Background, 0.3, { BackgroundTransparency = 0 })
-	
-	wait(0.2)
-	
-	-- Bankai lines burst
-	for i, line in ipairs(BankaiLines) do
-		spawn(function()
-			Tween(line.Main, 0.15, { 
-				BackgroundTransparency = 0.2,
-			})
-			Tween(line.Glow, 0.15, { BackgroundTransparency = 0.85 })
-			Tween(line.Container, 0.4, {
-				Size = UDim2.new(0.004, 0, 2, 0)
-			}, Enum.EasingStyle.Back)
-			wait(0.4)
-			Tween(line.Main, 0.6, { BackgroundTransparency = 0.6 })
-			Tween(line.Glow, 0.6, { BackgroundTransparency = 0.92 })
-		end)
-		wait(0.03)
-	end
-	
-	-- Environment effects
-	Tween(Vignette, 0.8, { ImageTransparency = 0.3 })
-	Tween(GradientFrame, 1, { BackgroundTransparency = 0.7 })
-	Tween(Blur, 1.2, { Size = 20 })
+	Tween(Blur, 1.5, { Size = 18 })
 	Tween(ColorCorrection, 1, {
-		Brightness = -0.2,
-		Contrast = 0.3,
-		Saturation = -0.2,
-		TintColor = Color3.fromRGB(255, 230, 240)
+		Brightness = -0.08,
+		Contrast = 0.2,
+		Saturation = 0.15,
 	})
 	Tween(Bloom, 1, { Intensity = 0.5 })
 	
-	wait(0.5)
+	wait(0.3)
 	
-	-- Phase 2: Cherry blossoms
-	for i, petal in ipairs(Petals) do
+	CreateSlashBurst()
+	
+	Tween(ColorCorrection, 0.08, { Brightness = 0.3 })
+	wait(0.08)
+	Tween(ColorCorrection, 0.2, { Brightness = -0.08 })
+	
+	wait(0.3)
+	
+	CreateSlashBurst()
+	
+	wait(0.2)
+	
+	Tween(OuterRingGlow, 0.6, { Size = UDim2.new(0, 320, 0, 320) }, Enum.EasingStyle.Back)
+	Tween(OuterRingGlowStroke, 0.5, { Transparency = 0.7 })
+	
+	CreateSlash(45, 0, Config.AccentBlue, 3, 0.2)
+	CreateSlash(-45, 0.05, Config.LightBlue, 2, 0.2)
+	
+	wait(0.08)
+	
+	Tween(OuterRing, 0.5, { Size = UDim2.new(0, 280, 0, 280) }, Enum.EasingStyle.Back)
+	Tween(OuterRingStroke, 0.4, { Transparency = 0.2 })
+	
+	wait(0.08)
+	
+	Tween(MiddleRing, 0.5, { Size = UDim2.new(0, 230, 0, 230) }, Enum.EasingStyle.Back)
+	Tween(MiddleRingStroke, 0.4, { Transparency = 0.3 })
+	
+	CreateSlash(30, 0, Config.White, 2, 0.25)
+	CreateSlash(-60, 0.03, Config.ElectricBlue, 2, 0.25)
+	
+	wait(0.08)
+	
+	Tween(InnerRing, 0.5, { Size = UDim2.new(0, 180, 0, 180) }, Enum.EasingStyle.Back)
+	Tween(InnerRingStroke, 0.4, { Transparency = 0.4 })
+	
+	for i, arc in ipairs(Arcs) do
 		spawn(function()
-			wait(math.random() * 0.5)
-			Tween(petal.Frame, 0.3, { BackgroundTransparency = math.random(2, 5) / 10 })
+			wait(i * 0.1)
+			Tween(arc.Stroke, 0.4, { Transparency = 0.2 })
 		end)
 	end
 	
-	wait(0.5)
+	wait(0.3)
 	
-	-- Phase 3: Logo appearance
+	CreateSlash(0, 0, Config.AccentBlue, 4, 0.3)
+	CreateSlash(90, 0.1, Config.LightBlue, 3, 0.3)
 	
-	-- Logo glow
-	Tween(LogoGlow, 0.6, {
-		Size = UDim2.new(0.28, 0, 0.28, 0),
-		ImageTransparency = 0.6
+	wait(0.2)
+	
+	SlashesActive = true
+	spawn(function()
+		while SlashesActive do
+			CreateRandomSlash()
+			wait(math.random(10, 18) / 100)
+		end
+	end)
+	
+	wait(0.3)
+	
+	CreateSlashBurst()
+	Tween(Bloom, 0.2, { Intensity = 1 })
+	Tween(ColorCorrection, 0.1, { Brightness = 0.2 })
+	
+	Tween(LogoGlow3, 0.7, {
+		Size = UDim2.new(0, BaseLogoSize * 1.5, 0, BaseLogoSize * 1.5),
+		ImageTransparency = 0.75
 	}, Enum.EasingStyle.Back)
 	
-	wait(0.1)
+	wait(0.05)
 	
-	-- Main logo
+	Tween(LogoGlow2, 0.6, {
+		Size = UDim2.new(0, BaseLogoSize * 1.3, 0, BaseLogoSize * 1.3),
+		ImageTransparency = 0.55
+	}, Enum.EasingStyle.Back)
+	
+	wait(0.05)
+	
+	Tween(LogoGlow, 0.5, {
+		Size = UDim2.new(0, BaseLogoSize * 1.15, 0, BaseLogoSize * 1.15),
+		ImageTransparency = 0.35
+	}, Enum.EasingStyle.Back)
+	
+	wait(0.05)
+	
 	Tween(Logo, 0.5, {
-		Size = UDim2.new(0.25, 0, 0.25, 0),
+		Size = UDim2.new(0, BaseLogoSize, 0, BaseLogoSize),
 		ImageTransparency = 0
 	}, Enum.EasingStyle.Back)
 	
-	-- Flash effect
-	Tween(ColorCorrection, 0.1, { Brightness = 0.1 })
-	wait(0.1)
-	Tween(ColorCorrection, 0.3, { Brightness = -0.2 })
+	Tween(ColorCorrection, 0.3, { Brightness = -0.08 })
+	Tween(Bloom, 0.5, { Intensity = 0.5 })
 	
-	wait(0.5)
+	wait(0.4)
 	
-	-- Phase 4: Text appearance
+	CreateSlash(-45, 0, Config.AccentBlue, 2, 0.2)
+	CreateSlash(45, 0.05, Config.LightBlue, 2, 0.2)
+	
 	Tween(TitleMain, 0.5, { TextTransparency = 0 })
-	Tween(TitleStroke, 0.5, { Thickness = 2, Transparency = 0.5 })
+	Tween(TitleStroke, 0.5, { Thickness = 2, Transparency = 0.4 })
+	
 	wait(0.1)
+	
 	Tween(TitleAccent, 0.5, { TextTransparency = 0 })
+	Tween(AccentStroke, 0.5, { Thickness = 1.5, Transparency = 0.5 })
 	
-	wait(0.3)
+	wait(0.2)
 	
-	Tween(Subtitle, 0.4, { TextTransparency = 0.2 })
+	Tween(Subtitle, 0.4, { TextTransparency = 0.1 })
 	
-	wait(0.3)
+	wait(0.2)
 	
-	-- Phase 5: Loading
-	Tween(LoadingBar, 0.3, { BackgroundTransparency = 0.7 })
+	Tween(LoadingOuter, 0.3, { BackgroundTransparency = 0.5 })
+	Tween(LoadingOuterStroke, 0.3, { Transparency = 0.3 })
 	Tween(LoadingFill, 0.2, { BackgroundTransparency = 0 })
+	Tween(LoadingPercent, 0.3, { TextTransparency = 0 })
 	
-	Tween(LoadingFill, 2, {
-		Size = UDim2.new(1, 0, 1, 0)
-	}, Enum.EasingStyle.Linear)
-	
-	-- Continuous animations
 	Connection = RunService.RenderStepped:Connect(function(delta)
 		ElapsedTime = ElapsedTime + delta
 		
-		-- Cherry blossom petals
-		for _, petal in ipairs(Petals) do
-			local frame = petal.Frame
-			local currentY = frame.Position.Y.Scale
-			
-			local newY = currentY + (petal.Speed * delta)
-			local swayX = petal.StartX + math.sin(ElapsedTime * petal.SwaySpeed) * (petal.SwayAmount / 1000)
-			
-			if newY > 1.1 then
-				newY = -0.1
-				petal.StartX = math.random()
-			end
-			
-			frame.Position = UDim2.new(swayX, 0, newY, 0)
-			frame.Rotation = frame.Rotation + (petal.RotSpeed * delta * 60)
+		for _, arc in ipairs(Arcs) do
+			arc.Gradient.Rotation = (arc.Gradient.Rotation + arc.Speed * arc.Direction * delta) % 360
 		end
 		
-		-- Logo pulse
-		local pulse = 1 + math.sin(ElapsedTime * 2) * 0.03
-		Logo.Size = UDim2.new(0.25 * pulse, 0, 0.25 * pulse, 0)
-		LogoGlow.Size = UDim2.new(0.28 * pulse, 0, 0.28 * pulse, 0)
+		local pulse = 1 + math.sin(ElapsedTime * 2.5) * 0.03
+		OuterRing.Size = UDim2.new(0, 280 * pulse, 0, 280 * pulse)
+		MiddleRing.Size = UDim2.new(0, 230 * pulse, 0, 230 * pulse)
+		InnerRing.Size = UDim2.new(0, 180 * pulse, 0, 180 * pulse)
+		OuterRingGlow.Size = UDim2.new(0, 320 * pulse, 0, 320 * pulse)
 		
-		-- Lines rotation
-		LineContainer.Rotation = -ElapsedTime * 8
+		local breathe = 1 + math.sin(ElapsedTime * 1.8) * 0.02
+		local logoSize = BaseLogoSize * breathe
+		Logo.Size = UDim2.new(0, logoSize, 0, logoSize)
+		LogoGlow.Size = UDim2.new(0, logoSize * 1.15, 0, logoSize * 1.15)
+		LogoGlow2.Size = UDim2.new(0, logoSize * 1.3, 0, logoSize * 1.3)
+		LogoGlow3.Size = UDim2.new(0, logoSize * 1.5, 0, logoSize * 1.5)
+		
+		LogoGlow.ImageTransparency = 0.35 + math.sin(ElapsedTime * 3) * 0.1
+		LogoGlow2.ImageTransparency = 0.55 + math.sin(ElapsedTime * 3 + 0.5) * 0.1
+		LogoGlow3.ImageTransparency = 0.75 + math.sin(ElapsedTime * 3 + 1) * 0.08
+		
+		LoadingGradient.Offset = Vector2.new(math.sin(ElapsedTime * 4) * 0.2, 0)
 	end)
 	
-	wait(2)
+	local loadingTime = 2
+	local startTime = tick()
 	
-	-- Phase 6: Complete
-	Subtitle.Text = "Heroin Injection Complete"
-	Tween(Subtitle, 0.2, { TextColor3 = Config.White })
-	
-	-- Line burst
-	for i, line in ipairs(BankaiLines) do
-		Tween(line.Container, 0.2, { 
-			Size = UDim2.new(0.008, 0, 2.5, 0),
-		})
-		Tween(line.Main, 0.2, { BackgroundTransparency = 0.3 })
-	end
-	
-	Tween(Bloom, 0.2, { Intensity = 1.5 })
-	Tween(ColorCorrection, 0.1, { Brightness = 0.3 })
-	wait(0.1)
-	Tween(ColorCorrection, 0.3, { Brightness = -0.2 })
-	Tween(Bloom, 0.3, { Intensity = 0.5 })
-	
-	for i, line in ipairs(BankaiLines) do
-		Tween(line.Main, 0.3, { BackgroundTransparency = 0.6 })
-		Tween(line.Container, 0.3, { 
-			Size = UDim2.new(0.004, 0, 2, 0),
-		})
+	while LoadingProgress < 1 do
+		local elapsed = tick() - startTime
+		LoadingProgress = math.min(elapsed / loadingTime, 1)
+		local easedProgress = 1 - math.pow(1 - LoadingProgress, 3)
+		
+		LoadingFill.Size = UDim2.new(easedProgress, 0, 1, 0)
+		LoadingPercent.Text = math.floor(easedProgress * 100) .. "%"
+		wait()
 	end
 	
 	wait(0.2)
 	
-	-- Phase 7: Fade out
+	SlashesActive = false
+	CreateSlashBurst()
+	
+	Subtitle.Text = Config.CompletedText
+	Tween(Subtitle, 0.3, { TextColor3 = Config.White })
+	Tween(LoadingPercent, 0.3, { TextColor3 = Config.ElectricBlue })
+	
+	Tween(Bloom, 0.1, { Intensity = 0.8 })
+	Tween(ColorCorrection, 0.08, { Brightness = 0.15 })
+	wait(0.1)
+	Tween(Bloom, 0.25, { Intensity = 0.5 })
+	Tween(ColorCorrection, 0.2, { Brightness = -0.08 })
+	
+	wait(0.4)
+	
 	if Connection then
 		Connection:Disconnect()
 	end
 	
-	Tween(IntroSound, 0.3, { Volume = 0 })
+	Tween(Logo, 0.35, { ImageTransparency = 1 })
+	Tween(LogoGlow, 0.35, { ImageTransparency = 1 })
+	Tween(LogoGlow2, 0.35, { ImageTransparency = 1 })
+	Tween(LogoGlow3, 0.35, { ImageTransparency = 1 })
 	
-	-- Logo fade
-	Tween(Logo, 0.25, { ImageTransparency = 1, Size = UDim2.new(0.3, 0, 0.3, 0) })
-	Tween(LogoGlow, 0.25, { ImageTransparency = 1 })
+	Tween(OuterRingStroke, 0.3, { Transparency = 1 })
+	Tween(OuterRingGlowStroke, 0.3, { Transparency = 1 })
+	Tween(MiddleRingStroke, 0.3, { Transparency = 1 })
+	Tween(InnerRingStroke, 0.3, { Transparency = 1 })
 	
-	-- Text fade
-	Tween(TitleMain, 0.2, { TextTransparency = 1 })
-	Tween(TitleAccent, 0.2, { TextTransparency = 1 })
-	Tween(TitleStroke, 0.2, { Transparency = 1 })
-	Tween(Subtitle, 0.2, { TextTransparency = 1 })
-	Tween(LoadingBar, 0.2, { BackgroundTransparency = 1 })
-	Tween(LoadingFill, 0.2, { BackgroundTransparency = 1 })
-	
-	-- Lines fade
-	for i, line in ipairs(BankaiLines) do
-		Tween(line.Main, 0.3, { BackgroundTransparency = 1 })
-		Tween(line.Glow, 0.3, { BackgroundTransparency = 1 })
+	for _, arc in ipairs(Arcs) do
+		Tween(arc.Stroke, 0.3, { Transparency = 1 })
 	end
 	
-	-- Petals fade
-	for _, petal in ipairs(Petals) do
-		spawn(function()
-			Tween(petal.Frame, 0.3, { BackgroundTransparency = 1 })
-		end)
-	end
+	Tween(TitleMain, 0.25, { TextTransparency = 1 })
+	Tween(TitleAccent, 0.25, { TextTransparency = 1 })
+	Tween(TitleStroke, 0.25, { Transparency = 1 })
+	Tween(AccentStroke, 0.25, { Transparency = 1 })
+	Tween(Subtitle, 0.25, { TextTransparency = 1 })
+	Tween(LoadingOuter, 0.25, { BackgroundTransparency = 1 })
+	Tween(LoadingOuterStroke, 0.25, { Transparency = 1 })
+	Tween(LoadingFill, 0.25, { BackgroundTransparency = 1 })
+	Tween(LoadingPercent, 0.25, { TextTransparency = 1 })
 	
-	-- Background fade
-	Tween(GradientFrame, 0.3, { BackgroundTransparency = 1 })
-	Tween(Vignette, 0.3, { ImageTransparency = 1 })
+	Tween(Vignette, 0.35, { ImageTransparency = 1 })
 	Tween(Background, 0.4, { BackgroundTransparency = 1 })
 	Tween(Blur, 0.4, { Size = 0 })
 	Tween(Bloom, 0.4, { Intensity = 0 })
@@ -548,14 +721,10 @@ local function StartAnimation()
 		Brightness = 0,
 		Contrast = 0,
 		Saturation = 0,
-		TintColor = Color3.new(1, 1, 1)
 	})
 	
 	wait(0.4)
 	
-	-- Cleanup
-	IntroSound:Stop()
-	IntroSound:Destroy()
 	ScreenGui:Destroy()
 	Blur:Destroy()
 	ColorCorrection:Destroy()

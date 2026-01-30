@@ -1829,185 +1829,201 @@
             end 
             
             function library:slider(options) 
-                local cfg = {
-                    name = options.name or nil,
-                    suffix = options.suffix or "",
-                    flag = options.flag or tostring(random(1,9999999)),
-                    callback = options.callback or function() end, 
+    local cfg = {
+        name = options.name or "Slider",
+        suffix = options.suffix or "",
+        flag = options.flag or tostring(random(1,9999999)),
+        callback = options.callback or function() end, 
+
+        min = tonumber(options.min) or tonumber(options.minimum) or 0,
+        max = tonumber(options.max) or tonumber(options.maximum) or 100,
+        intervals = tonumber(options.interval) or tonumber(options.decimal) or 1,
+        default = tonumber(options.value) or tonumber(options.default) or 0,
+        custom = options.custom or {},
+
+        ignore = options.ignore or false, 
+        dragging = false,
+    } 
+
+    -- Safety check
+    if cfg.max == nil then cfg.max = 100 end
+    if cfg.min == nil then cfg.min = 0 end
+    if cfg.default == nil then cfg.default = cfg.min end
     
-                                        max = options.max or options.maximum or 100,
-                    intervals = options.interval or options.decimal or 1,
-                    default = options.value or options.default or 10,
-                    custom = options.custom or {},
+    -- Ensure default is within range
+    cfg.default = clamp(cfg.default, cfg.min, cfg.max)
+    cfg.value = cfg.default
 
-                    ignore = options.ignore or false, 
-                    dragging = false,
-                } 
+    -- Instances
+        local object = library:create("TextButton", {
+            FontFace = library.font;
+            TextColor3 = rgb(0, 0, 0);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "";
+            Parent = self.elements;
+            BackgroundTransparency = 1;
+            Size = dim2(1, 0, 0, 32);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        local toggle_text = library:create("TextLabel", {
+            FontFace = library.font;
+            TextColor3 = rgb(255, 255, 255);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = cfg.name;
+            Parent = object;
+            AutomaticSize = Enum.AutomaticSize.XY;
+            Position = dim2(0, 8, 0, 0);
+            BackgroundTransparency = 1;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            BorderSizePixel = 0;
+            ZIndex = 2;
+            TextSize = 12;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        local slider_frame = library:create("TextButton", {
+            Parent = object;
+            Position = dim2(0, 8, 0, 16);
+            BorderColor3 = rgb(0, 0, 0);
+            Size = dim2(1, -14, 0, 8);
+            AutoButtonColor = false; 
+            Text = "";
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(12, 12, 12)
+        });	library:apply_theme(slider_frame, "d", "BackgroundColor3")
+        
+        local background = library:create("Frame", {
+            Parent = slider_frame;
+            Position = dim2(0, 1, 0, 1);
+            BorderColor3 = rgb(0, 0, 0);
+            Size = dim2(1, -2, 1, -2);
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(56, 56, 56)
+        });	library:apply_theme(background, "b", "BackgroundColor3")
+        
+        local fill = library:create("Frame", {
+            Parent = background;
+            BorderColor3 = rgb(0, 0, 0);
+            Size = dim2(0.5, 0, 1, 0);
+            BorderSizePixel = 0;
+            BackgroundColor3 = themes.preset.accent
+        });	library:apply_theme(fill, "accent", "BackgroundColor3")
+        
+        local output = library:create("TextLabel", {
+            FontFace = library.font;
+            Parent = fill;
+            TextColor3 = rgb(255, 255, 255);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "50";
+            AutomaticSize = Enum.AutomaticSize.XY;
+            AnchorPoint = vec2(0.5, 0);
+            Position = dim2(1, 0, 1, -1);
+            BackgroundTransparency = 1;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            BorderSizePixel = 0;
+            ZIndex = 2;
+            TextSize = 12;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        local plus = library:create("ImageButton", {
+            BorderColor3 = rgb(0, 0, 0);
+            Parent = slider_frame;
+            Image = "rbxassetid://126987373762224";
+            BackgroundTransparency = 1;
+            Position = dim2(1, -3, 0, 2);
+            Size = dim2(0, 5, 0, 5);
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(255, 255, 255)
+        }); library:apply_theme(plus, "text", "BackgroundColor3")
+        
+        local minus = library:create("ImageButton", {
+            AnchorPoint = vec2(1, 0);
+            Parent = slider_frame; 
+            Position = dim2(0, -3, 0, 4);
+            BorderColor3 = rgb(0, 0, 0);
+            Size = dim2(0, 5, 0, 1);
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(255, 255, 255)
+        }); library:apply_theme(minus, "text", "BackgroundColor3")
+    -- 
 
-                -- Instances
-                    local object = library:create("TextButton", {
-                        FontFace = library.font;
-                        TextColor3 = rgb(0, 0, 0);
-                        BorderColor3 = rgb(0, 0, 0);
-                        Text = "";
-                        Parent = self.elements;
-                        BackgroundTransparency = 1;
-                        Size = dim2(1, 0, 0, 32);
-                        BorderSizePixel = 0;
-                        TextSize = 14;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    });
-                    
-                    local toggle_text = library:create("TextLabel", {
-                        FontFace = library.font;
-                        TextColor3 = rgb(255, 255, 255);
-                        BorderColor3 = rgb(0, 0, 0);
-                        Text = cfg.name;
-                        Parent = object;
-                        AutomaticSize = Enum.AutomaticSize.XY;
-                        Position = dim2(0, 8, 0, 0);
-                        BackgroundTransparency = 1;
-                        TextXAlignment = Enum.TextXAlignment.Left;
-                        BorderSizePixel = 0;
-                        ZIndex = 2;
-                        TextSize = 12;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    });
-                    
-                    local slider_frame = library:create("TextButton", {
-                        Parent = object;
-                        Position = dim2(0, 8, 0, 16);
-                        BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(1, -14, 0, 8);
-                        AutoButtonColor = false; 
-                        Text = "";
-                        BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(12, 12, 12)
-                    });	library:apply_theme(slider_frame, "d", "BackgroundColor3")
-                    
-                    local background = library:create("Frame", {
-                        Parent = slider_frame;
-                        Position = dim2(0, 1, 0, 1);
-                        BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(1, -2, 1, -2);
-                        BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(56, 56, 56)
-                    });	library:apply_theme(background, "b", "BackgroundColor3")
-                    
-                    local fill = library:create("Frame", {
-                        Parent = background;
-                        BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(0.5, 0, 1, 0);
-                        BorderSizePixel = 0;
-                        BackgroundColor3 = themes.preset.accent
-                    });	library:apply_theme(fill, "accent", "BackgroundColor3")
-                    
-                    local output = library:create("TextLabel", {
-                        FontFace = library.font;
-                        Parent = fill;
-                        TextColor3 = rgb(255, 255, 255);
-                        BorderColor3 = rgb(0, 0, 0);
-                        Text = "50";
-                        AutomaticSize = Enum.AutomaticSize.XY;
-                        AnchorPoint = vec2(0.5, 0);
-                        Position = dim2(1, 0, 1, -1);
-                        BackgroundTransparency = 1;
-                        TextXAlignment = Enum.TextXAlignment.Left;
-                        BorderSizePixel = 0;
-                        ZIndex = 2;
-                        TextSize = 12;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    });
-                    
-                    local plus = library:create("ImageButton", {
-                        BorderColor3 = rgb(0, 0, 0);
-                        Parent = slider_frame;
-                        Image = "rbxassetid://126987373762224";
-                        BackgroundTransparency = 1;
-                        Position = dim2(1, -3, 0, 2);
-                        Size = dim2(0, 5, 0, 5);
-                        BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    }); library:apply_theme(plus, "text", "BackgroundColor3")
-                    
-                    local minus = library:create("ImageButton", {
-                        AnchorPoint = vec2(1, 0);
-                        Parent = slider_frame; 
-                        Position = dim2(0, -3, 0, 4);
-                        BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(0, 5, 0, 1);
-                        BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    }); library:apply_theme(minus, "text", "BackgroundColor3")
-                -- 
+    -- Functions 
+        function cfg.set(value)
+            local numValue = tonumber(value)
 
-                -- Functions 
-                    function cfg.set(value)
-                        local valuee = tonumber(value)
-
-                        if valuee == nil then 
-                            return 
-                        end 
-
-                        cfg.value = clamp(library:round(value, cfg.intervals), cfg.min, cfg.max)
-
-                        fill.Size = dim2((cfg.value - cfg.min) / (cfg.max - cfg.min), 0, 1, 0)
-                        
-                        -- Check for custom text
-                        local displayText = tostring(cfg.value) .. cfg.suffix
-                        if cfg.custom[tostring(cfg.value)] then
-                            displayText = cfg.custom[tostring(cfg.value)]
-                        end
-                        output.Text = displayText
-                        
-                        flags[cfg.flag] = cfg.value
-
-                        cfg.callback(flags[cfg.flag])
-                    end 
-
-                    cfg.set(cfg.default)
-                    
-                    config_flags[cfg.flag] = cfg.set
-                    library.options[cfg.flag] = cfg
-                -- 
-
-                -- Connections
-                    slider_frame.MouseButton1Down:Connect(function()
-                        cfg.dragging = true 
-                    end)
-
-                    minus.MouseButton1Down:Connect(function()
-                        cfg.value -= cfg.intervals
-                        cfg.set(cfg.value)
-                    end)
-
-                    plus.MouseButton1Down:Connect(function()
-                        cfg.value += cfg.intervals
-                        cfg.set(cfg.value)
-                    end)
-
-                    library:connection(uis.InputChanged, function(input)
-                        if cfg.dragging and input.UserInputType == Enum.UserInputType.MouseMovement then 
-                            local size_x = (input.Position.X - slider_frame.AbsolutePosition.X) / slider_frame.AbsoluteSize.X
-                            local value = ((cfg.max - cfg.min) * size_x) + cfg.min
-
-                            cfg.set(value)
-                        end
-                    end)
-
-                    library:connection(uis.InputEnded, function(input)
-                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            cfg.dragging = false 
-                        end 
-                    end)
-                -- 
-
-                cfg.set(cfg.default)
-
-                config_flags[cfg.flag] = cfg.set
-
-                return setmetatable(cfg, library)
+            if numValue == nil then 
+                return 
             end 
+
+            -- Ensure max and min are valid
+            local minVal = cfg.min or 0
+            local maxVal = cfg.max or 100
+            local intervalVal = cfg.intervals or 1
+
+            cfg.value = clamp(library:round(numValue, intervalVal), minVal, maxVal)
+
+            local range = maxVal - minVal
+            if range == 0 then range = 1 end
+            
+            fill.Size = dim2((cfg.value - minVal) / range, 0, 1, 0)
+            
+            -- Check for custom text
+            local displayText = tostring(cfg.value) .. cfg.suffix
+            if cfg.custom and cfg.custom[tostring(cfg.value)] then
+                displayText = cfg.custom[tostring(cfg.value)]
+            end
+            output.Text = displayText
+            
+            flags[cfg.flag] = cfg.value
+
+            cfg.callback(flags[cfg.flag])
+        end 
+
+        cfg.set(cfg.default)
+        
+        config_flags[cfg.flag] = cfg.set
+        library.options[cfg.flag] = cfg
+    -- 
+
+    -- Connections
+        slider_frame.MouseButton1Down:Connect(function()
+            cfg.dragging = true 
+        end)
+
+        minus.MouseButton1Down:Connect(function()
+            local newValue = (cfg.value or cfg.default or 0) - (cfg.intervals or 1)
+            cfg.set(newValue)
+        end)
+
+        plus.MouseButton1Down:Connect(function()
+            local newValue = (cfg.value or cfg.default or 0) + (cfg.intervals or 1)
+            cfg.set(newValue)
+        end)
+
+        library:connection(uis.InputChanged, function(input)
+            if cfg.dragging and input.UserInputType == Enum.UserInputType.MouseMovement then 
+                local size_x = (input.Position.X - slider_frame.AbsolutePosition.X) / slider_frame.AbsoluteSize.X
+                local minVal = cfg.min or 0
+                local maxVal = cfg.max or 100
+                local value = ((maxVal - minVal) * size_x) + minVal
+
+                cfg.set(value)
+            end
+        end)
+
+        library:connection(uis.InputEnded, function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                cfg.dragging = false 
+            end 
+        end)
+    -- 
+
+    return setmetatable(cfg, library)
+end 
 
             function library:dropdown(options)  
                 local cfg = {

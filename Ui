@@ -4712,354 +4712,241 @@
         end 
 
         function Library:Configs(window) 
-            local Text;
-            local ConfigText = ""; 
+    local Text;
+    local ConfigText = ""; 
 
-            local Tab = window:Tab({Name = "Settings"})
+    local Tab = window:Tab({Name = "Settings"})
 
-            local Section = Tab:Section({Name = "Main", Side = "Left"})
-            ConfigHolder = Section:Dropdown({
-                Name = "Configs", 
-                Options = {}, 
-                Callback = function(option) 
-                    if Text then 
-                        Text.Set(option) 
-                    end 
-                    ConfigText = option
-                end, 
-                Flag = "config_Name_list"
-            })
-            Library:UpdateConfigList()
-            
-            window.Tweening = true
-            Text = Section:Textbox({
-                Name = "Config Name:", 
-                Flag = "config_Name_text", 
-                Callback = function(text)
-                    ConfigText = text
-                end
-            })
-            window.Tweening = false
-            
-            Section:Button({
-                Name = "Save", 
-                Callback = function() 
-                    if ConfigText and ConfigText ~= "" then
-                        pcall(function()
-                            writefile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg", Library:GetConfig())
-                            Library:UpdateConfigList()
-                        end)
-                    end
-                end
-            })
-
-            Section:Button({
-                Name = "Load", 
-                Callback = function() 
-                    if ConfigText and ConfigText ~= "" then
-                        pcall(function()
-                            Library:LoadConfig(readfile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg"))  
-                            Library:UpdateConfigList() 
-                        end)
-                    end
-                end
-            })
-
-            Section:Button({
-                Name = "Delete", 
-                Callback = function() 
-                    if ConfigText and ConfigText ~= "" then
-                        pcall(function()
-                            delfile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg")  
-                            Library:UpdateConfigList() 
-                        end)
-                    end
-                end
-            })
-
-            window.Tweening = true
-            local MenuBindLabel = Section:Label({Name = "Menu Bind"})
-            MenuBindLabel:Keybind({
-                Name = "Menu Bind", 
-                ShowInList = false, 
-                Key = Enum.KeyCode.Insert,  -- CHANGED: Default INSERT
-                Mode = "Toggle",
-                Callback = function(bool) 
-                    if window.Tweening then
-                        return 
-                    end 
-                    window.ToggleMenu(bool) 
-                end, 
-                Default = true
-            })
-
-            task.delay(2, function() 
-                window.Tweening = false 
-            end)
-
-            local Section = Tab:Section({Name = "Other", Side = "Right"})
-            Section:Toggle({Name = "Watermark", Flag = "Watermark", Callback = window.ToggleWatermark})
-            Section:Toggle({Name = "Keybind List", Flag = "KeybindList", Callback = window.ToggleKeybindList})
-            Section:Toggle({Name = "Toggle Status", Flag = "Status", Callback = window.ToggleStatus})
-            Section:Textbox({Name = "Custom Menu Name", Callback = window.ChangeTitle, Default = window.Name, PlaceHolder = "Title name here..."})
-            Section:Textbox({Name = "Custom Watermark Name", Callback = window.ChangeWatermarkTitle, Default = window.Name .. ".lua", PlaceHolder = "Title name here..."})
-            Section:Dropdown({
-                Name = "Tweening Style", 
-                Options = {"Linear", "Sine", "Back", "Quad", "Quart", "Quint", "Bounce", "Elastic", "Exponential", "Circular", "Cubic"}, 
-                Flag = "LibraryEasingStyle", 
-                Default = "Quint", 
-                Callback = function(Option)
-                    Library.EasingStyle = Enum.EasingStyle[Option]
-                end
-            })
-            Section:Slider({
-                Name = "Tweening Speed", 
-                Min = 0.05, 
-                Max = 2, 
-                Decimal = 0.01, 
-                Suffix = "s", 
-                Default = 0.25, 
-                Flag = "TweeningSpeed", 
-                Callback = function(int)
-                    Library.TweeningSpeed = int
-                end
-            })
-
-            Section:Label({Name = "Inline"}):Colorpicker({
-                Flag = "Inline", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("inline", newColor) 
-
-                    for _, seq in ipairs(themes.gradients.Selected) do 
-                        pcall(function()
-                            seq.Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
-                        end)
-                    end 
-                end, 
-                Color = themes.preset.inline
-            })
-
-            Section:Label({Name = "Gradient"}):Colorpicker({
-                Flag = "Gradient", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("gradient", newColor)
-
-                    for _, seq in ipairs(themes.gradients.Selected) do 
-                        pcall(function()
-                            seq.Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
-                        end)
-                    end
-
-                    for _, seq in ipairs(themes.gradients.Deselected) do 
-                        pcall(function()
-                            seq.Color = rgbseq{rgbkey(0, themes.preset.gradient), rgbkey(1, themes.preset.background)}
-                        end)
-                    end
-                end, 
-                Color = themes.preset.gradient
-            })
-            
-            Section:Label({Name = "Outline"}):Colorpicker({
-                Flag = "Outline", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("outline", newColor) 
-                end, 
-                Color = themes.preset.outline
-            })
-            
-            Section:Label({Name = "Accent"}):Colorpicker({
-                Flag = "Accent", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("accent", newColor) 
-                end, 
-                Color = themes.preset.accent
-            })
-            
-            Section:Label({Name = "Background"}):Colorpicker({
-                Flag = "Background", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("background", newColor) 
-
-                    for _, seq in ipairs(themes.gradients.Deselected) do 
-                        pcall(function()
-                            seq.Color = rgbseq{rgbkey(0, themes.preset.gradient), rgbkey(1, themes.preset.background)}
-                        end)
-                    end
-                end, 
-                Color = themes.preset.background
-            })
-            
-            Section:Label({Name = "Text Color"}):Colorpicker({
-                Flag = "Text Color", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("text_color", newColor) 
-                end, 
-                Color = themes.preset.text_color
-            })
-            
-            Section:Label({Name = "Text Outline"}):Colorpicker({
-                Flag = "Text Outline", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("text_outline", newColor) 
-                end, 
-                Color = themes.preset.text_outline
-            })
-            
-            Section:Label({Name = "Tab Background"}):Colorpicker({
-                Flag = "Tab Background", 
-                Callback = function(newColor, alpha) 
-                    Library:RefreshTheme("tab_background", newColor) 
-                end, 
-                Color = themes.preset.tab_background
-            })
-        end
---
-
--- Notification Library
-    function Notifications:RefreshNotifications() 
-        local offset = 50
-        
-        for i, v in ipairs(Notifications.Notifs) do
-            local Position = vec2(20, offset)
-            Library:Tween(v, {Position = dim_offset(Position.X, Position.Y)})
-            offset = offset + (v.AbsoluteSize.Y + 10)
-        end
-
-        return offset
-    end
+    local Section = Tab:Section({Name = "Main", Side = "Left"})
+    ConfigHolder = Section:Dropdown({
+        Name = "Configs", 
+        Options = {}, 
+        Default = "",
+        Callback = function(option) 
+            if option and option ~= "" then
+                ConfigText = option
+                if Text and Text.Set then 
+                    Text.Set(option) 
+                end 
+            end
+        end, 
+        Flag = "config_Name_list"
+    })
+    Library:UpdateConfigList()
     
-    function Notifications:FadeNotifs(path, is_fading)
-        local fading = is_fading and 1 or 0 
-        
-        Library:Tween(path, {BackgroundTransparency = fading})
-
-        for _, instance in ipairs(path:GetDescendants()) do 
-            if not instance:IsA("GuiObject") then 
-                if instance:IsA("UIStroke") then
-                    Library:Tween(instance, {Transparency = fading})
-                end
-                continue
-            end 
-    
-            if instance:IsA("TextLabel") then
-                Library:Tween(instance, {TextTransparency = fading})
-            elseif instance:IsA("Frame") then
-                local targetTrans = instance.BackgroundTransparency
-                if targetTrans == 0.6 then
-                    Library:Tween(instance, {BackgroundTransparency = is_fading and 1 or 0.6})
-                else
-                    Library:Tween(instance, {BackgroundTransparency = fading})
-                end
+    window.Tweening = true
+    Text = Section:Textbox({
+        Name = "Config Name:", 
+        Flag = "config_Name_text", 
+        Default = "",
+        Callback = function(text)
+            if text then
+                ConfigText = text
             end
         end
-    end 
+    })
+    window.Tweening = false
     
-    function Notifications:Create(properties)
-        local Cfg = {
-            Name = properties.Name or "This is a notification!";
-            Lifetime = properties.LifeTime or properties.Lifetime or 3;
-            Items = {};
-        }
+    Section:Button({
+        Name = "Save", 
+        Callback = function() 
+            if ConfigText and ConfigText ~= "" then
+                pcall(function()
+                    writefile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg", Library:GetConfig())
+                    Library:UpdateConfigList()
+                    Notifications:Create({Name = "Saved: " .. ConfigText, LifeTime = 2})
+                end)
+            else
+                Notifications:Create({Name = "Please enter a config name!", LifeTime = 2})
+            end
+        end
+    })
 
-        local Items = Cfg.Items; do 
-            Items.Outline = Library:Create( "Frame" , {
-                Parent = Library.Items;
-                Size = dim2(0, 0, 0, 18);
-                Name = "\0";
-                AnchorPoint = vec2(1, 0);
-                Position = dim2(0, 7, 0, 46);
-                BorderColor3 = rgb(0, 0, 0);
-                BorderSizePixel = 0;
-                AutomaticSize = Enum.AutomaticSize.XY;
-                BackgroundColor3 = rgb(52, 52, 52)
-            });
-            
-            Items.Inline = Library:Create( "Frame" , {
-                Parent = Items.Outline;
-                Name = "\0";
-                Position = dim2(0, 1, 0, 1);
-                BorderColor3 = rgb(0, 0, 0);
-                BorderSizePixel = 0;
-                AutomaticSize = Enum.AutomaticSize.XY;
-                BackgroundColor3 = rgb(5, 5, 5)
-            });
-            
-            Library:Create( "UIPadding" , {
-                PaddingTop = dim(0, 7);
-                PaddingBottom = dim(0, 6);
-                Parent = Items.Inline;
-                PaddingRight = dim(0, 8);
-                PaddingLeft = dim(0, 4)
-            });
-            
-            Items.Text = Library:Create( "TextLabel" , {
-                FontFace = Library.Font;
-                Parent = Items.Inline;
-                TextColor3 = rgb(255, 255, 255);
-                BorderColor3 = rgb(0, 0, 0);
-                Text = Cfg.Name;
-                Name = "\0";
-                AutomaticSize = Enum.AutomaticSize.XY;
-                Size = dim2(1, -4, 1, 0);
-                Position = dim2(0, 4, 0, -2);
-                BackgroundTransparency = 1;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                BorderSizePixel = 0;
-                ZIndex = 2;
-                TextSize = 12;
-                BackgroundColor3 = rgb(255, 255, 255)
-            });
-            
-            Library:Create( "UIPadding" , {
-                PaddingBottom = dim(0, 1);
-                PaddingRight = dim(0, 1);
-                Parent = Items.Outline
-            });
-            
-            Items.AccentLine = Library:Create( "Frame" , {
-                Parent = Items.Outline;
-                Name = "\0";
-                Position = dim2(0, 2, 1, -1);
-                BorderColor3 = rgb(0, 0, 0);
-                Size = dim2(1, -1, 0, 1);
-                BorderSizePixel = 0;
-                ZIndex = 100;
-                BackgroundColor3 = themes.preset.accent
-            });	Library:Themify(Items.AccentLine, "accent", "BackgroundColor3")
-            
-            Items.Accent = Library:Create( "Frame" , {
-                Parent = Items.Outline;
-                Name = "\0";
-                ZIndex = 100;
-                Position = dim2(0, 1, 0, 1);
-                BorderColor3 = rgb(0, 0, 0);
-                Size = dim2(0, 1, 1, -1);
-                BorderSizePixel = 0;
-                BackgroundColor3 = themes.preset.accent
-            });	Library:Themify(Items.Accent, "accent", "BackgroundColor3")                    
-        end 
-        
-        local index = #Notifications.Notifs + 1
-        Notifications.Notifs[index] = Items.Outline
+    Section:Button({
+        Name = "Load", 
+        Callback = function() 
+            if ConfigText and ConfigText ~= "" then
+                local success = pcall(function()
+                    Library:LoadConfig(readfile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg"))  
+                    Library:UpdateConfigList() 
+                end)
+                if success then
+                    Notifications:Create({Name = "Loaded: " .. ConfigText, LifeTime = 2})
+                else
+                    Notifications:Create({Name = "Failed to load config!", LifeTime = 2})
+                end
+            else
+                Notifications:Create({Name = "Please select a config!", LifeTime = 2})
+            end
+        end
+    })
 
-        local offset = Notifications:RefreshNotifications()
+    Section:Button({
+        Name = "Delete", 
+        Callback = function() 
+            if ConfigText and ConfigText ~= "" then
+                pcall(function()
+                    delfile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg")  
+                    Library:UpdateConfigList() 
+                    Notifications:Create({Name = "Deleted: " .. ConfigText, LifeTime = 2})
+                end)
+            else
+                Notifications:Create({Name = "Please select a config!", LifeTime = 2})
+            end
+        end
+    })
 
-        Items.Outline.Position = dim_offset(20, offset)
+    window.Tweening = true
+    local MenuBindLabel = Section:Label({Name = "Menu Bind"})
+    MenuBindLabel:Keybind({
+        Name = "Menu Bind", 
+        ShowInList = false, 
+        Key = Enum.KeyCode.Insert,
+        Mode = "Toggle",
+        Callback = function(bool) 
+            if window.Tweening then
+                return 
+            end 
+            window.ToggleMenu(bool) 
+        end, 
+        Default = true
+    })
 
-        Library:Tween(Items.Outline, {AnchorPoint = vec2(0, 0)})
-        Library:Tween(Items.AccentLine, {Size = dim2(0, -2, 0, 1)}, TweenInfo.new(Cfg.Lifetime, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut, 0, false, 0))
+    task.delay(2, function() 
+        window.Tweening = false 
+    end)
 
-        task.spawn(function()
-            task.wait(Cfg.Lifetime)
-            Notifications.Notifs[index] = nil
-            Notifications:FadeNotifs(Items.Outline, true)
-            Library:Tween(Items.Outline, {AnchorPoint = vec2(1, 0)})
-            task.wait(1)
-            pcall(function()
-                Items.Outline:Destroy() 
-            end)
-        end)
-    end
---
+    local Section2 = Tab:Section({Name = "Other", Side = "Right"})
+    Section2:Toggle({Name = "Watermark", Flag = "Watermark", Default = false, Callback = window.ToggleWatermark})
+    Section2:Toggle({Name = "Keybind List", Flag = "KeybindList", Default = false, Callback = window.ToggleKeybindList})
+    Section2:Toggle({Name = "Toggle Status", Flag = "Status", Default = false, Callback = window.ToggleStatus})
+    Section2:Textbox({Name = "Custom Menu Name", Callback = window.ChangeTitle, Default = window.Name or "Nebula Premium", PlaceHolder = "Title name here..."})
+    Section2:Textbox({Name = "Custom Watermark Name", Callback = window.ChangeWatermarkTitle, Default = (window.Name or "Nebula Premium") .. ".lua", PlaceHolder = "Title name here..."})
+    Section2:Dropdown({
+        Name = "Tweening Style", 
+        Options = {"Linear", "Sine", "Back", "Quad", "Quart", "Quint", "Bounce", "Elastic", "Exponential", "Circular", "Cubic"}, 
+        Flag = "LibraryEasingStyle", 
+        Default = "Quint", 
+        Callback = function(Option)
+            if Option and Enum.EasingStyle[Option] then
+                Library.EasingStyle = Enum.EasingStyle[Option]
+            end
+        end
+    })
+    Section2:Slider({
+        Name = "Tweening Speed", 
+        Min = 0.05, 
+        Max = 2, 
+        Decimal = 0.01, 
+        Suffix = "s", 
+        Default = 0.25, 
+        Flag = "TweeningSpeed", 
+        Callback = function(int)
+            Library.TweeningSpeed = int
+        end
+    })
 
-return Library, Notifications, themes
+    Section2:Label({Name = "Inline"}):Colorpicker({
+        Flag = "Inline", 
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("inline", newColor) 
+
+                for _, seq in ipairs(themes.gradients.Selected) do 
+                    pcall(function()
+                        seq.Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
+                    end)
+                end 
+            end
+        end, 
+        Color = themes.preset.inline
+    })
+
+    Section2:Label({Name = "Gradient"}):Colorpicker({
+        Flag = "Gradient", 
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("gradient", newColor)
+
+                for _, seq in ipairs(themes.gradients.Selected) do 
+                    pcall(function()
+                        seq.Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
+                    end)
+                end
+
+                for _, seq in ipairs(themes.gradients.Deselected) do 
+                    pcall(function()
+                        seq.Color = rgbseq{rgbkey(0, themes.preset.gradient), rgbkey(1, themes.preset.background)}
+                    end)
+                end
+            end
+        end, 
+        Color = themes.preset.gradient
+    })
+    
+    Section2:Label({Name = "Outline"}):Colorpicker({
+        Flag = "Outline", 
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("outline", newColor) 
+            end
+        end, 
+        Color = themes.preset.outline
+    })
+    
+    Section2:Label({Name = "Accent"}):Colorpicker({
+        Flag = "Accent", 
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("accent", newColor) 
+            end
+        end, 
+        Color = themes.preset.accent
+    })
+    
+    Section2:Label({Name = "Background"}):Colorpicker({
+        Flag = "Background2",  -- Changed flag to avoid conflict
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("background", newColor) 
+
+                for _, seq in ipairs(themes.gradients.Deselected) do 
+                    pcall(function()
+                        seq.Color = rgbseq{rgbkey(0, themes.preset.gradient), rgbkey(1, themes.preset.background)}
+                    end)
+                end
+            end
+        end, 
+        Color = themes.preset.background
+    })
+    
+    Section2:Label({Name = "Text Color"}):Colorpicker({
+        Flag = "TextColor", -- Changed flag name (no spaces)
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("text_color", newColor) 
+            end
+        end, 
+        Color = themes.preset.text_color
+    })
+    
+    Section2:Label({Name = "Text Outline"}):Colorpicker({
+        Flag = "TextOutline", -- Changed flag name (no spaces)
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("text_outline", newColor) 
+            end
+        end, 
+        Color = themes.preset.text_outline
+    })
+    
+    Section2:Label({Name = "Tab Background"}):Colorpicker({
+        Flag = "TabBackground", -- Changed flag name (no spaces)
+        Callback = function(newColor, alpha) 
+            if newColor then
+                Library:RefreshTheme("tab_background", newColor) 
+            end
+        end, 
+        Color = themes.preset.tab_background
+    })
+end

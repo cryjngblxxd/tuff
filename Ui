@@ -3194,32 +3194,25 @@
             end
             
             function Cfg.Set(value)
-    -- Handle nil value
-    if value == nil then
-        value = Cfg.Multi and {} or ""
-    end
-    
-    local Selected = {}
-    local IsTable = type(value) == "table"
+                local Selected = {}
+                local IsTable = type(value) == "table"
 
-    for _, option in ipairs(Cfg.OptionInstances) do 
-        if option.Text == value or (IsTable and table.find(value, option.Text)) then 
-            table.insert(Selected, option.Text)
-            Cfg.MultiItems = Selected
-            option.TextColor3 = themes.preset.text_color
-        else
-            option.TextColor3 = rgb(179, 179, 179)
-            option.BackgroundTransparency = 1
-        end
-    end
+                for _, option in ipairs(Cfg.OptionInstances) do 
+                    if option.Text == value or (IsTable and table.find(value, option.Text)) then 
+                        table.insert(Selected, option.Text)
+                        Cfg.MultiItems = Selected
+                        option.TextColor3 = themes.preset.text_color
+                    else
+                        option.TextColor3 = rgb(179, 179, 179)
+                        option.BackgroundTransparency = 1
+                    end
+                end
 
-    Items.InnerText.Text = IsTable and table.concat(Selected, ", ") or (Selected[1] or "")
-    Flags[Cfg.Flag] = IsTable and Selected or Selected[1]
-    
-    if Cfg.Callback then
-        Cfg.Callback(Flags[Cfg.Flag]) 
-    end
-end
+                Items.InnerText.Text = IsTable and table.concat(Selected, ", ") or Selected[1] or ""
+                Flags[Cfg.Flag] = IsTable and Selected or Selected[1]
+                
+                Cfg.Callback(Flags[Cfg.Flag]) 
+            end
             
             function Cfg.RefreshOptions(options) 
                 for _, option in ipairs(Cfg.OptionInstances) do 
@@ -3388,13 +3381,10 @@ end
             end 
             
             function Cfg.Set(text) 
-    text = text or ""
-    Flags[Cfg.Flag] = text
-    Items.Input.Text = text
-    if Cfg.Callback then
-        Cfg.Callback(text)
-    end
-end 
+                Flags[Cfg.Flag] = text
+                Items.Input.Text = text
+                Cfg.Callback(text)
+            end 
             
             Items.Input:GetPropertyChangedSignal("Text"):Connect(function()
                 Cfg.Set(Items.Input.Text) 
@@ -4950,13 +4940,155 @@ end
         Color = themes.preset.text_outline
     })
     
-    Section2:Label({Name = "Tab Background"}):Colorpicker({
-        Flag = "TabBackground", -- Changed flag name (no spaces)
-        Callback = function(newColor, alpha) 
-            if newColor then
-                Library:RefreshTheme("tab_background", newColor) 
-            end
-        end, 
-        Color = themes.preset.tab_background
+            Section2:Label({Name = "Tab Background"}):Colorpicker({
+            Flag = "TabBackground",
+            Callback = function(newColor, alpha) 
+                if newColor then
+                    Library:RefreshTheme("tab_background", newColor) 
+                end
+            end, 
+            Color = themes.preset.tab_background
+        })
+    end
+--
+
+-- Notifications System
+function Library.Notifications:Create(properties)
+    local Cfg = {
+        Name = properties.Name or "Notification",
+        LifeTime = properties.LifeTime or 3,
+        Items = {}
+    }
+    
+    local Items = Cfg.Items
+    
+    Items.Notification = Library:Create("Frame", {
+        Parent = Library.Items,
+        Name = "\0",
+        Position = dim2(1, 10, 1, -50 - (#Library.Notifications.Notifs * 35)),
+        Size = dim2(0, 0, 0, 30),
+        AutomaticSize = Enum.AutomaticSize.X,
+        BorderSizePixel = 0,
+        BackgroundColor3 = themes.preset.outline
     })
+    Library:Themify(Items.Notification, "outline", "BackgroundColor3")
+    
+    Items.Accent = Library:Create("Frame", {
+        Parent = Items.Notification,
+        Name = "\0",
+        Position = dim2(0, 1, 0, 1),
+        Size = dim2(1, -2, 0, 2),
+        BorderSizePixel = 0,
+        BackgroundColor3 = themes.preset.accent
+    })
+    Library:Themify(Items.Accent, "accent", "BackgroundColor3")
+    
+    Library:Create("UIGradient", {
+        Rotation = 90,
+        Parent = Items.Accent,
+        Color = rgbseq{rgbkey(0, rgb(255, 255, 255)), rgbkey(1, rgb(158, 158, 158))}
+    })
+    
+    Items.Outline = Library:Create("Frame", {
+        Parent = Items.Notification,
+        Name = "\0",
+        Position = dim2(0, 0, 0, 3),
+        Size = dim2(1, 0, 0, 1),
+        BorderSizePixel = 0,
+        BackgroundColor3 = themes.preset.outline
+    })
+    Library:Themify(Items.Outline, "outline", "BackgroundColor3")
+    
+    Items.Inline = Library:Create("Frame", {
+        Parent = Items.Notification,
+        Name = "\0",
+        Position = dim2(0, 1, 0, 4),
+        Size = dim2(1, -2, 1, -5),
+        BorderSizePixel = 0,
+        BackgroundColor3 = themes.preset.gradient
+    })
+    Library:Themify(Items.Inline, "gradient", "BackgroundColor3")
+    
+    Items.Background = Library:Create("Frame", {
+        Parent = Items.Inline,
+        Name = "\0",
+        Position = dim2(0, 1, 0, 1),
+        Size = dim2(1, -2, 1, -2),
+        BorderSizePixel = 0,
+        BackgroundColor3 = rgb(255, 255, 255)
+    })
+    
+    local gradient = Library:Create("UIGradient", {
+        Rotation = 90,
+        Parent = Items.Background,
+        Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
+    })
+    Library:SaveGradient(gradient, "Selected")
+    
+    Items.Text = Library:Create("TextLabel", {
+        FontFace = Library.Font,
+        TextColor3 = themes.preset.text_color,
+        BorderColor3 = rgb(0, 0, 0),
+        Text = Cfg.Name,
+        Parent = Items.Background,
+        Name = "\0",
+        BackgroundTransparency = 1,
+        Position = dim2(0, 8, 0, 0),
+        Size = dim2(1, -16, 1, 0),
+        BorderSizePixel = 0,
+        AutomaticSize = Enum.AutomaticSize.X,
+        TextSize = 12,
+        BackgroundColor3 = rgb(255, 255, 255)
+    })
+    
+    Library:Create("UIStroke", {
+        Parent = Items.Text,
+        LineJoinMode = Enum.LineJoinMode.Miter
+    })
+    
+    Library:Create("UIPadding", {
+        PaddingRight = dim(0, 8),
+        PaddingLeft = dim(0, 8),
+        Parent = Items.Notification
+    })
+    
+    -- Add to notifications list
+    table.insert(Library.Notifications.Notifs, Cfg)
+    
+    -- Animate in
+    local targetPos = dim2(1, -Items.Notification.AbsoluteSize.X - 10, 1, -50 - ((#Library.Notifications.Notifs - 1) * 35))
+    Items.Notification.Position = dim2(1, 10, 1, -50 - ((#Library.Notifications.Notifs - 1) * 35))
+    Library:Tween(Items.Notification, {Position = targetPos})
+    
+    -- Auto remove after lifetime
+    task.delay(Cfg.LifeTime, function()
+        Library:Tween(Items.Notification, {Position = dim2(1, 10, Items.Notification.Position.Y.Scale, Items.Notification.Position.Y.Offset)}):Completed:Wait()
+        
+        -- Remove from list
+        local idx = table.find(Library.Notifications.Notifs, Cfg)
+        if idx then
+            table.remove(Library.Notifications.Notifs, idx)
+        end
+        
+        Items.Notification:Destroy()
+        
+        -- Reposition remaining notifications
+        for i, notif in ipairs(Library.Notifications.Notifs) do
+            if notif.Items.Notification then
+                Library:Tween(notif.Items.Notification, {
+                    Position = dim2(
+                        notif.Items.Notification.Position.X.Scale,
+                        notif.Items.Notification.Position.X.Offset,
+                        1,
+                        -50 - ((i - 1) * 35)
+                    )
+                })
+            end
+        end
+    end)
+    
+    return Cfg
 end
+
+-- Return the library
+return Library, Library.Notifications, themes

@@ -4939,7 +4939,6 @@
         end, 
         Color = themes.preset.text_outline
     })
-    
             Section2:Label({Name = "Tab Background"}):Colorpicker({
             Flag = "TabBackground",
             Callback = function(newColor, alpha) 
@@ -4953,7 +4952,7 @@
 --
 
 -- Notifications System
-function Library.Notifications:Create(properties)
+Library.Notifications.Create = function(self, properties)
     local Cfg = {
         Name = properties.Name or "Notification",
         LifeTime = properties.LifeTime or 3,
@@ -4965,7 +4964,7 @@ function Library.Notifications:Create(properties)
     Items.Notification = Library:Create("Frame", {
         Parent = Library.Items,
         Name = "\0",
-        Position = dim2(1, 10, 1, -50 - (#Library.Notifications.Notifs * 35)),
+        Position = dim2(1, 10, 1, -50 - (#self.Notifs * 35)),
         Size = dim2(0, 0, 0, 30),
         AutomaticSize = Enum.AutomaticSize.X,
         BorderSizePixel = 0,
@@ -5052,28 +5051,26 @@ function Library.Notifications:Create(properties)
         Parent = Items.Notification
     })
     
-    -- Add to notifications list
-    table.insert(Library.Notifications.Notifs, Cfg)
+    table.insert(self.Notifs, Cfg)
     
-    -- Animate in
-    local targetPos = dim2(1, -Items.Notification.AbsoluteSize.X - 10, 1, -50 - ((#Library.Notifications.Notifs - 1) * 35))
-    Items.Notification.Position = dim2(1, 10, 1, -50 - ((#Library.Notifications.Notifs - 1) * 35))
+    local targetPos = dim2(1, -Items.Notification.AbsoluteSize.X - 10, 1, -50 - ((#self.Notifs - 1) * 35))
+    Items.Notification.Position = dim2(1, 10, 1, -50 - ((#self.Notifs - 1) * 35))
     Library:Tween(Items.Notification, {Position = targetPos})
     
-    -- Auto remove after lifetime
     task.delay(Cfg.LifeTime, function()
-        Library:Tween(Items.Notification, {Position = dim2(1, 10, Items.Notification.Position.Y.Scale, Items.Notification.Position.Y.Offset)}):Completed:Wait()
+        local tweenOut = Library:Tween(Items.Notification, {
+            Position = dim2(1, 10, Items.Notification.Position.Y.Scale, Items.Notification.Position.Y.Offset)
+        })
+        tweenOut.Completed:Wait()
         
-        -- Remove from list
-        local idx = table.find(Library.Notifications.Notifs, Cfg)
+        local idx = table.find(self.Notifs, Cfg)
         if idx then
-            table.remove(Library.Notifications.Notifs, idx)
+            table.remove(self.Notifs, idx)
         end
         
         Items.Notification:Destroy()
         
-        -- Reposition remaining notifications
-        for i, notif in ipairs(Library.Notifications.Notifs) do
+        for i, notif in ipairs(self.Notifs) do
             if notif.Items.Notification then
                 Library:Tween(notif.Items.Notification, {
                     Position = dim2(
@@ -5090,5 +5087,4 @@ function Library.Notifications:Create(properties)
     return Cfg
 end
 
--- Return the library
 return Library, Library.Notifications, themes

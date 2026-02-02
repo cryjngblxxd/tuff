@@ -3339,30 +3339,29 @@ end
         end
     })
     
-    -- Menu toggle key dropdown (more reliable than keybind)
-    uiSection:dropdown({
-        name = "menu toggle key",
-        flag = "_ui_menu_key",
-        items = {
-            "RightShift", "LeftShift", "RightControl", "LeftControl",
-            "End", "Home", "Insert", "Delete",
-            "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-            "P", "M", "K", "L", "O", "I"
-        },
-        default = "RightShift",
-        callback = function(value)
-            if value and type(value) == "string" then
-                local success = pcall(function()
-                    library.menuToggleKey = Enum.KeyCode[value]
-                end)
-                if success then
-                    notifications:create_notification({name = "Menu key set to: " .. value, duration = 2})
-                end
-            end
+    uiSection:keybind({
+    name = "menu toggle",
+    flag = "_ui_menutoggle",
+    key = Enum.KeyCode.Insert,
+    mode = "Toggle",
+    ignore_key = true, -- Prevent it from triggering its own callback
+    callback = function(active)
+        -- This callback is not used for menu toggle
+    end
+})
+
+-- Watch for key changes on the menu toggle keybind
+task.spawn(function()
+    while library do
+        task.wait(0.1)
+        local keyData = flags["_ui_menutoggle"]
+        if keyData and keyData.key and keyData.key ~= "..." then
+            library.menuToggleKey = keyData.key
         end
-    })
+    end
+end)
     
-    uiSection:label({name = "default: RightShift"})
+
     
     return {
         configSection = configSection,

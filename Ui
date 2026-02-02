@@ -1,5 +1,4 @@
--- MODIFIED VADERHAXX LIBRARY WITH CONFIG SYSTEM
--- Original: October 2024 (Discontinued)
+
 -- Modified: Added config system, textbox, button fixes, UI settings
 
 -- Variables 
@@ -1098,12 +1097,18 @@
                 });                 
             -- 
 
-            -- Toggle menu visibility
-            library:connection(uis.InputBegan, function(input, gameProcessed)
-                if input.KeyCode == Enum.KeyCode.RightShift and not gameProcessed then
-                    library.gui.Enabled = not library.gui.Enabled
-                end
-            end)
+            -- Toggle menu visibility (dynamic key support)
+library.menuToggleKey = Enum.KeyCode.RightShift -- Default key
+
+library:connection(uis.InputBegan, function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    local inputKey = input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode or input.UserInputType
+    
+    if inputKey == library.menuToggleKey then
+        library.gui.Enabled = not library.gui.Enabled
+    end
+end)
 
             return setmetatable(cfg, library)
         end 
@@ -3187,172 +3192,185 @@ end
             -- CONFIG TAB BUILDER FUNCTION
             -- ========================================
             function library:build_config_section(tab)
-                library:refresh_configs()
-                
-                local configSection = tab:section({name = "configuration"})
-                local uiSection = tab:section({name = "ui settings", side = "right"})
-                
-                -- Config name textbox
-                local configNameBox = configSection:textbox({
-                    name = "config name",
-                    flag = "_config_name",
-                    placeholder = "enter config name...",
-                    default = "",
-                })
-                
-                -- Config list dropdown
-                local configs = library.config.list
-                if #configs == 0 then
-                    configs = {"none"}
-                end
-                
-                local configDropdown = configSection:dropdown({
-                    name = "select config",
-                    flag = "_config_selected",
-                    items = configs,
-                    default = configs[1],
-                    callback = function(value)
-                        library.config.selected = value
-                    end
-                })
-                
-                -- Store reference for refreshing
-                config_holder = configDropdown
-                
-                -- Save button
-                configSection:button({
-                    name = "save config",
-                    callback = function()
-                        local name = flags["_config_name"] or ""
-                        if name == "" then
-                            name = library.config.selected or "config_" .. os.time()
-                        end
-                        library:save_config(name)
-                        
-                        -- Refresh dropdown
-                        library:refresh_configs()
-                        local newConfigs = library.config.list
-                        if #newConfigs == 0 then
-                            newConfigs = {"none"}
-                        end
-                        configDropdown.refresh_options(newConfigs)
-                    end
-                })
-                
-                -- Load button
-                configSection:button({
-                    name = "load config",
-                    callback = function()
-                        local selected = library.config.selected or flags["_config_selected"]
-                        if selected and selected ~= "none" then
-                            library:load_config(selected)
-                        else
-                            notifications:create_notification({name = "Please select a config"})
-                        end
-                    end
-                })
-                
-                -- Delete button
-                configSection:button({
-                    name = "delete config",
-                    callback = function()
-                        local selected = library.config.selected or flags["_config_selected"]
-                        if selected and selected ~= "none" then
-                            library:delete_config(selected)
-                            
-                            -- Refresh dropdown
-                            library:refresh_configs()
-                            local newConfigs = library.config.list
-                            if #newConfigs == 0 then
-                                newConfigs = {"none"}
-                            end
-                            configDropdown.refresh_options(newConfigs)
-                        else
-                            notifications:create_notification({name = "Please select a config"})
-                        end
-                    end
-                })
-                
-                -- Refresh button
-                configSection:button({
-                    name = "refresh configs",
-                    callback = function()
-                        library:refresh_configs()
-                        local newConfigs = library.config.list
-                        if #newConfigs == 0 then
-                            newConfigs = {"none"}
-                        end
-                        configDropdown.refresh_options(newConfigs)
-                        notifications:create_notification({name = "Config list refreshed"})
-                    end
-                })
-                
-                -- Autoload section
-                local autoloadSection = tab:section({name = "autoload", side = "right"})
-                
-                -- Set autoload button
-                autoloadSection:button({
-                    name = "set as autoload",
-                    callback = function()
-                        local selected = library.config.selected or flags["_config_selected"]
-                        if selected and selected ~= "none" then
-                            library:set_autoload(selected)
-                        else
-                            notifications:create_notification({name = "Please select a config"})
-                        end
-                    end
-                })
-                
-                -- Remove autoload button
-                autoloadSection:button({
-                    name = "remove autoload",
-                    callback = function()
-                        library:remove_autoload()
-                    end
-                })
-                
-                -- Current autoload label
-                local currentAutoload = library:get_autoload() or "none"
-                autoloadSection:label({name = "current: " .. currentAutoload})
-                
-                -- UI Settings
-                uiSection:toggle({
-                    name = "show watermark",
-                    flag = "_ui_watermark",
-                    default = true,
-                    callback = function(value)
-                        -- Watermark visibility handled separately
-                    end
-                })
-                
-                uiSection:toggle({
-                    name = "show keybind list",
-                    flag = "_ui_keybindlist",
-                    default = false,
-                    callback = function(value)
-                        if library.keybind_list_frame then
-                            library.keybind_list_frame.Visible = value
-                        end
-                    end
-                })
-                
-                uiSection:keybind({
-                    name = "menu toggle",
-                    flag = "_ui_menutoggle",
-                    key = Enum.KeyCode.RightShift,
-                    mode = "Toggle",
-                    callback = function(active)
-                        -- Menu toggle is handled by default
-                    end
-                })
-                
-                return {
-                    configSection = configSection,
-                    autoloadSection = autoloadSection,
-                    uiSection = uiSection,
-                    configDropdown = configDropdown,
-                }
+    library:refresh_configs()
+    
+    local configSection = tab:section({name = "configuration", side = "left"})
+    local autoloadSection = tab:section({name = "autoload", side = "left"})
+    local uiSection = tab:section({name = "ui settings", side = "right"})
+    
+    -- Config name textbox
+    local configNameBox = configSection:textbox({
+        name = "config name",
+        flag = "_config_name",
+        placeholder = "enter config name...",
+        default = "",
+    })
+    
+    -- Config list dropdown
+    local configs = library.config.list
+    if #configs == 0 then
+        configs = {"none"}
+    end
+    
+    local configDropdown = configSection:dropdown({
+        name = "select config",
+        flag = "_config_selected",
+        items = configs,
+        default = configs[1],
+        callback = function(value)
+            library.config.selected = value
+        end
+    })
+    
+    -- Store reference for refreshing
+    config_holder = configDropdown
+    
+    -- Save button
+    configSection:button({
+        name = "save config",
+        callback = function()
+            local name = flags["_config_name"] or ""
+            if name == "" then
+                name = library.config.selected or "config_" .. os.time()
             end
+            library:save_config(name)
+            
+            -- Refresh dropdown
+            library:refresh_configs()
+            local newConfigs = library.config.list
+            if #newConfigs == 0 then
+                newConfigs = {"none"}
+            end
+            configDropdown.refresh_options(newConfigs)
+        end
+    })
+    
+    -- Load button
+    configSection:button({
+        name = "load config",
+        callback = function()
+            local selected = library.config.selected or flags["_config_selected"]
+            if selected and selected ~= "none" then
+                library:load_config(selected)
+            else
+                notifications:create_notification({name = "Please select a config"})
+            end
+        end
+    })
+    
+    -- Delete button
+    configSection:button({
+        name = "delete config",
+        callback = function()
+            local selected = library.config.selected or flags["_config_selected"]
+            if selected and selected ~= "none" then
+                library:delete_config(selected)
+                
+                -- Refresh dropdown
+                library:refresh_configs()
+                local newConfigs = library.config.list
+                if #newConfigs == 0 then
+                    newConfigs = {"none"}
+                end
+                configDropdown.refresh_options(newConfigs)
+            else
+                notifications:create_notification({name = "Please select a config"})
+            end
+        end
+    })
+    
+    -- Refresh button
+    configSection:button({
+        name = "refresh configs",
+        callback = function()
+            library:refresh_configs()
+            local newConfigs = library.config.list
+            if #newConfigs == 0 then
+                newConfigs = {"none"}
+            end
+            configDropdown.refresh_options(newConfigs)
+            notifications:create_notification({name = "Config list refreshed"})
+        end
+    })
+    
+    -- Set autoload button
+    autoloadSection:button({
+        name = "set as autoload",
+        callback = function()
+            local selected = library.config.selected or flags["_config_selected"]
+            if selected and selected ~= "none" then
+                library:set_autoload(selected)
+            else
+                notifications:create_notification({name = "Please select a config"})
+            end
+        end
+    })
+    
+    -- Remove autoload button
+    autoloadSection:button({
+        name = "remove autoload",
+        callback = function()
+            library:remove_autoload()
+        end
+    })
+    
+    -- Current autoload label
+    local currentAutoload = library:get_autoload() or "none"
+    autoloadSection:label({name = "current: " .. currentAutoload})
+    
+    -- UI Settings
+    uiSection:toggle({
+        name = "show watermark",
+        flag = "_ui_watermark",
+        default = true,
+        callback = function(value)
+            -- Watermark visibility handled separately
+        end
+    })
+    
+    uiSection:toggle({
+        name = "show keybind list",
+        flag = "_ui_keybindlist",
+        default = false,
+        callback = function(value)
+            if library.keybind_list_frame then
+                library.keybind_list_frame.Visible = value
+            end
+        end
+    })
+    
+    -- Menu toggle key dropdown (more reliable than keybind)
+    uiSection:dropdown({
+        name = "menu toggle key",
+        flag = "_ui_menu_key",
+        items = {
+            "RightShift", "LeftShift", "RightControl", "LeftControl",
+            "End", "Home", "Insert", "Delete",
+            "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+            "P", "M", "K", "L", "O", "I"
+        },
+        default = "RightShift",
+        callback = function(value)
+            if value and type(value) == "string" then
+                local success = pcall(function()
+                    library.menuToggleKey = Enum.KeyCode[value]
+                end)
+                if success then
+                    notifications:create_notification({name = "Menu key set to: " .. value, duration = 2})
+                end
+            end
+        end
+    })
+    
+    uiSection:label({name = "default: RightShift"})
+    
+    return {
+        configSection = configSection,
+        autoloadSection = autoloadSection,
+        uiSection = uiSection,
+        configDropdown = configDropdown,
+    }
+end
         -- 
     -- 
 -- 

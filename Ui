@@ -1,5 +1,5 @@
 
--- Modified: Added config system, textbox, button fixes, UI settings
+-- Modified: Added config system, textbox, button fixes, UI settings Etc
 
 -- Variables 
     local uis = game:GetService("UserInputService") 
@@ -684,34 +684,63 @@
         end
 
         function library:unload_menu() 
-            if library.gui then 
-                library.gui:Destroy()
-            end
-            
-            for index, connection in next, library.connections do 
-                connection:Disconnect() 
-                connection = nil 
-            end     
-            
-            library = nil 
-        end 
+    if library.gui then 
+        library.gui:Destroy()
+    end
+    
+    if library.watermark_gui then
+        library.watermark_gui:Destroy()
+    end
+    
+    if library.keybind_gui then
+        library.keybind_gui:Destroy()
+    end
+    
+    for index, connection in next, library.connections do 
+        connection:Disconnect() 
+        connection = nil 
+    end     
+    
+    library = nil 
+end 
     --
         
     -- Library element functions
         function library:window(properties)
-            local cfg = {
-                name = properties.name or properties.Name or "vaderhaxx",
-                size = properties.size or properties.Size or dim2(0, 560, 0, 740),
-                selected_tab 
-            }
+    local cfg = {
+        name = properties.name or properties.Name or "vaderhaxx",
+        size = properties.size or properties.Size or dim2(0, 560, 0, 740),
+        selected_tab 
+    }
 
-            library.gui = library:create("ScreenGui", {
-                Parent = coregui,
-                Name = "\0",
-                Enabled = true,
-                ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-                IgnoreGuiInset = true,
-            })
+    -- Main menu GUI
+    library.gui = library:create("ScreenGui", {
+        Parent = coregui,
+        Name = "\0",
+        Enabled = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset = true,
+    })
+    
+    -- Separate GUI for watermark (independent visibility)
+    library.watermark_gui = library:create("ScreenGui", {
+        Parent = coregui,
+        Name = "\0",
+        Enabled = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset = true,
+    })
+    
+    -- Separate GUI for keybind list (independent visibility)
+    library.keybind_gui = library:create("ScreenGui", {
+        Parent = coregui,
+        Name = "\0",
+        Enabled = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset = true,
+    })
+
+    
 
             -- Window
                 local a = library:create("Frame", {
@@ -1098,6 +1127,7 @@
             -- 
 
             -- Toggle menu visibility (dynamic key support)
+-- Toggle menu visibility (dynamic key support)
 library.menuToggleKey = Enum.KeyCode.RightShift -- Default key
 
 library:connection(uis.InputBegan, function(input, gameProcessed)
@@ -1107,6 +1137,8 @@ library:connection(uis.InputBegan, function(input, gameProcessed)
     
     if inputKey == library.menuToggleKey then
         library.gui.Enabled = not library.gui.Enabled
+        -- Note: watermark_gui and keybind_gui are NOT toggled here
+        -- They have their own visibility controlled by settings
     end
 end)
 
@@ -1114,141 +1146,144 @@ end)
         end 
 
         function library:watermark(options)
-            local cfg = {
-                name = options.name or "vaderhaxx";
-                visible = true;
+    local cfg = {
+        name = options.name or "vaderhaxx";
+        visible = true;
+    }
+    
+    -- Instances
+        local outline = library:create("Frame", {
+            Parent = library.watermark_gui;  -- Changed to separate GUI
+            Size = dim2(0, 0, 0, 18);
+            Position = dim2(0, 50, 0, 50);
+            BorderColor3 = rgb(0, 0, 0);
+            BorderSizePixel = 0;
+            AutomaticSize = Enum.AutomaticSize.XY;
+            BackgroundColor3 = rgb(46, 46, 46)
+        });	library:apply_theme(outline, "c", "BackgroundColor3"); library:draggify(outline)
+        
+        cfg.frame = outline
+
+        local inline = library:create("Frame", {
+            Parent = outline;
+            Position = dim2(0, 1, 0, 1);
+            BorderColor3 = rgb(0, 0, 0);
+            BorderSizePixel = 0;
+            AutomaticSize = Enum.AutomaticSize.XY;
+            BackgroundColor3 = rgb(21, 21, 21)
+        });	library:apply_theme(inline, "e", "BackgroundColor3")
+        
+        local menu_title = library:create("TextLabel", {
+            FontFace = library.font;
+            Parent = inline;
+            TextColor3 = rgb(255, 255, 255);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "[ ] ";
+            AutomaticSize = Enum.AutomaticSize.XY;
+            Size = dim2(1, -4, 1, 0);
+            Position = dim2(0, 4, 0, -2);
+            BackgroundTransparency = 1;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            BorderSizePixel = 0;
+            ZIndex = 2;
+            TextSize = 12;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        local uigradient = library:create("UIGradient", {
+            Color = rgbseq{rgbkey(0, rgb(255, 0, 0)), rgbkey(0.17, rgb(255, 255, 0)), rgbkey(0.33, rgb(0, 255, 0)), rgbkey(0.5, rgb(0, 255, 255)), rgbkey(0.67, rgb(0, 0, 255)), rgbkey(0.83, rgb(255, 0, 255)), rgbkey(1, rgb(255, 0, 0))};
+            Transparency = numseq{numkey(0, -1), numkey(1, -1)};
+            Parent = menu_title
+        });
+        
+        library:create("UIPadding", {
+            PaddingTop = dim(0, 7);
+            PaddingBottom = dim(0, 6);
+            Parent = inline;
+            PaddingRight = dim(0, 8);
+            PaddingLeft = dim(0, 4)
+        });
+        
+        local misc_text = library:create("TextLabel", {
+            FontFace = library.font;
+            Parent = inline;
+            TextColor3 = rgb(255, 255, 255);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "[                  ] | game : baseplate | ping : 32";
+            AutomaticSize = Enum.AutomaticSize.XY;
+            Size = dim2(1, -4, 1, 0);
+            Position = dim2(0, 4, 0, -2);
+            BackgroundTransparency = 1;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            BorderSizePixel = 0;
+            ZIndex = 2;
+            TextSize = 12;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        library:create("UIPadding", {
+            PaddingBottom = dim(0, 1);
+            PaddingRight = dim(0, 1);
+            Parent = outline
+        });
+    --
+
+    function cfg.update_text(text)
+        misc_text.Text = "[ "
+        
+        for i = 1, string.len(cfg.name) do 
+            misc_text.Text ..= " "
+        end  
+        
+        misc_text.Text ..= " ] fps: " .. math.floor(1/run.RenderStepped:Wait()) .. " | ping: " .. math.floor(stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        menu_title.Text = "[ " .. cfg.name .. " ]"
+    end 
+    
+    -- Visibility functions
+    function cfg:set_visible(bool)
+        cfg.visible = bool
+        outline.Visible = bool
+    end
+    
+    function cfg:show()
+        cfg:set_visible(true)
+    end
+    
+    function cfg:hide()
+        cfg:set_visible(false)
+    end
+    
+    function cfg:toggle()
+        cfg:set_visible(not cfg.visible)
+    end
+
+    cfg.update_text("a")
+
+    task.spawn(function()
+        while library and library.watermark_gui do
+            local offset = tick() * 0.2
+            
+            uigradient.Color = rgbseq{
+                rgbkey(0, hsv(offset % 1, 1, 1)), 
+                rgbkey(0.17, hsv((offset + 0.17) % 1, 1, 1)), 
+                rgbkey(0.33, hsv((offset + 0.33) % 1, 1, 1)), 
+                rgbkey(0.5, hsv((offset + 0.5) % 1, 1, 1)), 
+                rgbkey(0.67, hsv((offset + 0.67) % 1, 1, 1)), 
+                rgbkey(0.83, hsv((offset + 0.83) % 1, 1, 1)), 
+                rgbkey(1, hsv((offset + 1) % 1, 1, 1))
             }
             
-            -- Instances
-                local outline = library:create("Frame", {
-                    Parent = library.gui;
-                    Size = dim2(0, 0, 0, 18);
-                    Position = dim2(0, 50, 0, 50);
-                    BorderColor3 = rgb(0, 0, 0);
-                    BorderSizePixel = 0;
-                    AutomaticSize = Enum.AutomaticSize.XY;
-                    BackgroundColor3 = rgb(46, 46, 46)
-                });	library:apply_theme(outline, "c", "BackgroundColor3"); library:draggify(outline)
-                
-                cfg.frame = outline
+            cfg.update_text()
 
-                local inline = library:create("Frame", {
-                    Parent = outline;
-                    Position = dim2(0, 1, 0, 1);
-                    BorderColor3 = rgb(0, 0, 0);
-                    BorderSizePixel = 0;
-                    AutomaticSize = Enum.AutomaticSize.XY;
-                    BackgroundColor3 = rgb(21, 21, 21)
-                });	library:apply_theme(inline, "e", "BackgroundColor3")
-                
-                local menu_title = library:create("TextLabel", {
-                    FontFace = library.font;
-                    Parent = inline;
-                    TextColor3 = rgb(255, 255, 255);
-                    BorderColor3 = rgb(0, 0, 0);
-                    Text = "[ ] ";
-                    AutomaticSize = Enum.AutomaticSize.XY;
-                    Size = dim2(1, -4, 1, 0);
-                    Position = dim2(0, 4, 0, -2);
-                    BackgroundTransparency = 1;
-                    TextXAlignment = Enum.TextXAlignment.Left;
-                    BorderSizePixel = 0;
-                    ZIndex = 2;
-                    TextSize = 12;
-                    BackgroundColor3 = rgb(255, 255, 255)
-                });
-                
-                local uigradient = library:create("UIGradient", {
-                    Color = rgbseq{rgbkey(0, rgb(255, 0, 0)), rgbkey(0.17, rgb(255, 255, 0)), rgbkey(0.33, rgb(0, 255, 0)), rgbkey(0.5, rgb(0, 255, 255)), rgbkey(0.67, rgb(0, 0, 255)), rgbkey(0.83, rgb(255, 0, 255)), rgbkey(1, rgb(255, 0, 0))};
-                    Transparency = numseq{numkey(0, -1), numkey(1, -1)};
-                    Parent = menu_title
-                });
-                
-                library:create("UIPadding", {
-                    PaddingTop = dim(0, 7);
-                    PaddingBottom = dim(0, 6);
-                    Parent = inline;
-                    PaddingRight = dim(0, 8);
-                    PaddingLeft = dim(0, 4)
-                });
-                
-                local misc_text = library:create("TextLabel", {
-                    FontFace = library.font;
-                    Parent = inline;
-                    TextColor3 = rgb(255, 255, 255);
-                    BorderColor3 = rgb(0, 0, 0);
-                    Text = "[                  ] | game : baseplate | ping : 32";
-                    AutomaticSize = Enum.AutomaticSize.XY;
-                    Size = dim2(1, -4, 1, 0);
-                    Position = dim2(0, 4, 0, -2);
-                    BackgroundTransparency = 1;
-                    TextXAlignment = Enum.TextXAlignment.Left;
-                    BorderSizePixel = 0;
-                    ZIndex = 2;
-                    TextSize = 12;
-                    BackgroundColor3 = rgb(255, 255, 255)
-                });
-                
-                library:create("UIPadding", {
-                    PaddingBottom = dim(0, 1);
-                    PaddingRight = dim(0, 1);
-                    Parent = outline
-                });
-            --
-
-            function cfg.update_text(text)
-                misc_text.Text = "[ "
-                
-                for i = 1, string.len(cfg.name) do 
-                    misc_text.Text ..= " "
-                end  
-                
-                misc_text.Text ..= " ] fps: " .. math.floor(1/run.RenderStepped:Wait()) .. " | ping: " .. math.floor(stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-                menu_title.Text = "[ " .. cfg.name .. " ]"
-            end 
-            
-            -- Visibility functions
-            function cfg:set_visible(bool)
-                cfg.visible = bool
-                outline.Visible = bool
-            end
-            
-            function cfg:show()
-                cfg:set_visible(true)
-            end
-            
-            function cfg:hide()
-                cfg:set_visible(false)
-            end
-            
-            function cfg:toggle()
-                cfg:set_visible(not cfg.visible)
-            end
-
-            cfg.update_text("a")
-
-            task.spawn(function()
-                while true do
-                    local offset = tick() * 0.2
-                    
-                    uigradient.Color = rgbseq{
-                        rgbkey(0, hsv(offset % 1, 1, 1)), 
-                        rgbkey(0.17, hsv((offset + 0.17) % 1, 1, 1)), 
-                        rgbkey(0.33, hsv((offset + 0.33) % 1, 1, 1)), 
-                        rgbkey(0.5, hsv((offset + 0.5) % 1, 1, 1)), 
-                        rgbkey(0.67, hsv((offset + 0.67) % 1, 1, 1)), 
-                        rgbkey(0.83, hsv((offset + 0.83) % 1, 1, 1)), 
-                        rgbkey(1, hsv((offset + 1) % 1, 1, 1))
-                    }
-                    
-                    cfg.update_text()
-
-                    task.wait(0.5)
-                end 
-            end)
-
-            return setmetatable(cfg, library)
+            task.wait(0.5)
         end 
+    end)
+    
+    -- Store reference
+    library.watermark = cfg
+
+    return setmetatable(cfg, library)
+end 
 
         local notifications = {notifs = {}} 
 
@@ -3222,10 +3257,8 @@ end
         end
     })
     
-    -- Store reference for refreshing
     config_holder = configDropdown
     
-    -- Save button
     configSection:button({
         name = "save config",
         callback = function()
@@ -3235,7 +3268,6 @@ end
             end
             library:save_config(name)
             
-            -- Refresh dropdown
             library:refresh_configs()
             local newConfigs = library.config.list
             if #newConfigs == 0 then
@@ -3245,7 +3277,6 @@ end
         end
     })
     
-    -- Load button
     configSection:button({
         name = "load config",
         callback = function()
@@ -3258,7 +3289,6 @@ end
         end
     })
     
-    -- Delete button
     configSection:button({
         name = "delete config",
         callback = function()
@@ -3266,7 +3296,6 @@ end
             if selected and selected ~= "none" then
                 library:delete_config(selected)
                 
-                -- Refresh dropdown
                 library:refresh_configs()
                 local newConfigs = library.config.list
                 if #newConfigs == 0 then
@@ -3279,7 +3308,6 @@ end
         end
     })
     
-    -- Refresh button
     configSection:button({
         name = "refresh configs",
         callback = function()
@@ -3293,7 +3321,6 @@ end
         end
     })
     
-    -- Set autoload button
     autoloadSection:button({
         name = "set as autoload",
         callback = function()
@@ -3306,7 +3333,6 @@ end
         end
     })
     
-    -- Remove autoload button
     autoloadSection:button({
         name = "remove autoload",
         callback = function()
@@ -3314,17 +3340,18 @@ end
         end
     })
     
-    -- Current autoload label
     local currentAutoload = library:get_autoload() or "none"
     autoloadSection:label({name = "current: " .. currentAutoload})
     
-    -- UI Settings
+    -- UI Settings with proper visibility control
     uiSection:toggle({
         name = "show watermark",
         flag = "_ui_watermark",
         default = true,
         callback = function(value)
-            -- Watermark visibility handled separately
+            if library.watermark_gui then
+                library.watermark_gui.Enabled = value
+            end
         end
     })
     
@@ -3333,8 +3360,8 @@ end
         flag = "_ui_keybindlist",
         default = false,
         callback = function(value)
-            if library.keybind_list_frame then
-                library.keybind_list_frame.Visible = value
+            if library.keybind_gui then
+                library.keybind_gui.Enabled = value
             end
         end
     })
@@ -3360,8 +3387,6 @@ task.spawn(function()
         end
     end
 end)
-    
-
     
     return {
         configSection = configSection,

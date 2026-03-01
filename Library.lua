@@ -937,7 +937,7 @@ do
         end);
 
         DisplayFrame.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch  and not Library:MouseIsOverOpenedFrame() then
+            if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and and not Library:MouseIsOverOpenedFrame() then
                 if PickerFrameOuter.Visible then
                     ColorPicker:Hide()
                 else
@@ -1228,7 +1228,7 @@ do
         local Picking = false;
 
         PickOuter.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch  and not Library:MouseIsOverOpenedFrame() then
+            if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and and not Library:MouseIsOverOpenedFrame() then
                 Picking = true;
 
                 DisplayLabel.Text = '';
@@ -1287,7 +1287,7 @@ do
                     local Key = KeyPicker.Value;
 
                     if Key == 'MB1' or Key == 'MB2' then
-                        if Key == 'MB1' and Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch 
+                        if Key == 'MB1' and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and
                         or Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2 then
                             KeyPicker.Toggled = not KeyPicker.Toggled
                             KeyPicker:DoClick()
@@ -1925,7 +1925,7 @@ do
         end;
 
         ToggleRegion.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch  and not Library:MouseIsOverOpenedFrame() then
+            if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and and not Library:MouseIsOverOpenedFrame() then
                 Toggle:SetValue(not Toggle.Value) -- Why was it not like this from the start?
                 Library:AttemptSave();
             end;
@@ -2112,7 +2112,7 @@ do
         end;
 
         SliderInner.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch  and not Library:MouseIsOverOpenedFrame() then
+            if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and and not Library:MouseIsOverOpenedFrame() then
                 local mPos = Mouse.X;
                 local gPos = Fill.Size.X.Offset;
                 local Diff = mPos - (Fill.AbsolutePosition.X + gPos);
@@ -2529,7 +2529,7 @@ do
         end;
 
         DropdownOuter.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch  and not Library:MouseIsOverOpenedFrame() then
+            if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and and not Library:MouseIsOverOpenedFrame() then
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
                 else
@@ -3444,7 +3444,7 @@ function Library:CreateWindow(...)
                 end;
 
                 Button.InputBegan:Connect(function(Input)
-                    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch  and not Library:MouseIsOverOpenedFrame() then
+                    if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and and not Library:MouseIsOverOpenedFrame() then
                         Tab:Show();
                         Tab:Resize();
                     end;

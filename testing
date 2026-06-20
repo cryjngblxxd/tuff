@@ -12,6 +12,7 @@
 
     -- Extra data types
     local color, rgb, hex, hsv, rgbseq, rgbkey, numseq, numkey = Color3.new, Color3.fromRGB, Color3.fromHex, Color3.fromHSV, ColorSequence.new, ColorSequenceKeypoint.new, NumberSequence.new, NumberSequenceKeypoint.new
+    local insert = table.insert  -- used by Library:ConvertEnum
 -- 
 
 -- Library init
@@ -4818,16 +4819,57 @@
                 Notifications:Create({Name = "Deleted Config (" ..  Library.Directory .. "/configs/" .. ConfigText .. ".cfg" .. ")"}) 
             end})
 
-            window.Tweening = true
-            Section:Label({Name = "Menu Bind"}):Keybind({Name = "Menu Bind", ShowInList = false, Callback = function(bool) 
-                if window.Tweening then
-                    return 
-                end 
+            -- Silent Execute: read persisted state from a small file
+            -- so it survives script re-execution.
+            local silentPath = Library.Directory .. "/silent_execute.dat"
+            local silentEnabled = false
+            pcall(function()
+                if isfile(silentPath) then
+                    silentEnabled = readfile(silentPath) == "true"
+                end
+            end)
 
-                window.ToggleMenu(bool) 
-            end, Default = true})
+            -- Menu Bind — defaults to the Insert key. The Active state
+            -- mirrors silent mode: if silent is on, Active starts false
+            -- so the FIRST Insert press toggles to true and shows the
+            -- menu (instead of hiding it, which would be useless).
+            window.Tweening = true
+            Section:Label({Name = "Menu Bind"}):Keybind({
+                Name = "Menu Bind",
+                ShowInList = false,
+                Key = Enum.KeyCode.Insert,
+                Default = not silentEnabled,
+                Callback = function(bool)
+                    if window.Tweening then
+                        return
+                    end
+
+                    window.ToggleMenu(bool)
+                end
+            })
 
             delay(2, function() window.Tweening = false end)
+
+            -- Silent Execute toggle — persists to file, applied on the
+            -- NEXT execute (so the user can still see the toggle change
+            -- state in the UI right now).
+            Section:Toggle({
+                Name = "Silent Execute (hide UI on load)",
+                Flag = "SilentExecute",
+                Default = silentEnabled,
+                Callback = function(bool)
+                    pcall(function()
+                        writefile(silentPath, tostring(bool))
+                    end)
+                end
+            })
+
+            -- Apply silent execute RIGHT NOW (this execute): hide the
+            -- window instantly. ToggleMenu(true) later will fade it
+            -- back in smoothly when the user presses Insert.
+            if silentEnabled then
+                window.Items.Window.Visible = false
+            end
 
             local Section = Tab:Section({Name = "Other", Side = "Right"})
             Section:Toggle({Name = "Watermark", Flag = "Watermark", Callback = window.ToggleWatermark})

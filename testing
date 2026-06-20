@@ -375,7 +375,6 @@
         local ConfigHolder;
         function Library:UpdateConfigList() 
             if not ConfigHolder then 
-                print("no exist :(")
                 return 
             end
             
@@ -383,17 +382,10 @@
             
             local folder = Library.Directory .. "/configs"
             for _,file in listfiles(folder) do
-                -- Strip any leading path (handles both `/` and `\`
-                -- separators returned by listfiles on different
-                -- executors / OSes), then strip the .cfg extension.
                 local Name = file:match("[^/\\]+$") or file
                 Name = Name:gsub("%.cfg$", "")
                 List[#List + 1] = Name
             end
-
-            for _,v in List do 
-                print(_,v)
-            end 
 
             ConfigHolder.RefreshOptions(List)
         end
@@ -2019,7 +2011,6 @@
 
             function Cfg.ToggleKeybindList(bool)
                 Items.Keybind_List.Visible = bool
-                print(bool)
             end
             
             return setmetatable(Cfg, Library)
@@ -2120,14 +2111,20 @@
                         VerticalFlex = Enum.UIFlexAlignment.Fill
                     });
                     
-                    Items.Left = Library:Create( "Frame" , {
+                    Items.Left = Library:Create( "ScrollingFrame" , {
                         Parent = Items.Page;
                         BackgroundTransparency = 1;
                         Name = "\0";
                         BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(0, 100, 0, 100);
+                        Size = dim2(0.5, -2, 1, 0);
                         BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255)
+                        BackgroundColor3 = rgb(255, 255, 255);
+                        ScrollBarThickness = 0;
+                        ScrollBarImageTransparency = 1;
+                        ScrollingDirection = Enum.ScrollingDirection.Y;
+                        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                        CanvasSize = dim2(0, 0, 0, 0);
+                        ScrollBarImageColor3 = themes.preset.accent;
                     });
                     
                     Library:Create( "UIListLayout" , {
@@ -2136,14 +2133,20 @@
                         SortOrder = Enum.SortOrder.LayoutOrder
                     });
                     
-                    Items.Right = Library:Create( "Frame" , {
+                    Items.Right = Library:Create( "ScrollingFrame" , {
                         Parent = Items.Page;
                         BackgroundTransparency = 1;
                         Name = "\0";
                         BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(0, 100, 0, 100);
+                        Size = dim2(0.5, -2, 1, 0);
                         BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255)
+                        BackgroundColor3 = rgb(255, 255, 255);
+                        ScrollBarThickness = 0;
+                        ScrollBarImageTransparency = 1;
+                        ScrollingDirection = Enum.ScrollingDirection.Y;
+                        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                        CanvasSize = dim2(0, 0, 0, 0);
+                        ScrollBarImageColor3 = themes.preset.accent;
                     });
                     
                     Library:Create( "UIListLayout" , {
@@ -3129,7 +3132,6 @@
                 end)
     
                 if not Cfg.TabInfo then
-                    print("new tab")
                     SubItems.Fill.Size = dim2(1, -2, 0, 1);
                     SubItems.TextPadding.PaddingRight = dim(0, 8);
                     Data.OpenTab()
@@ -4096,7 +4098,6 @@
 
             Library:Connection(InputService.InputBegan, function(input, game_event)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    print("clicked")
                     if (Items.DropdownElements.Visible) and not Library:Hovering({Items.DropdownElements, Items.Dropdown}) then
                         Cfg.SetVisible(false)
                         Cfg.Open = false
@@ -5072,7 +5073,6 @@
             Library:Tween(Items.Outline, {AnchorPoint = vec2(0, 0)})
             Library:Tween(Items.AccentLine, {Size = dim2(0, -2, 0, 1)}, TweenInfo.new(Cfg.Lifetime, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut, 0, false, 0))
 
-            print(Items.AccentLine.BackgroundTransparency)
             task.spawn(function()
                 task.wait(Cfg.Lifetime)
                 Notifications.Notifs[index] = nil
@@ -5186,4 +5186,5 @@
     Library.ConfigManager = ConfigManager
 
 return Library, Notifications, themes, ConfigManager
+
 

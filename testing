@@ -3900,7 +3900,7 @@
                 -- 
                 
                 -- Element Holder
-                    Items.DropdownElements = Library:Create( "Frame" , {
+                    Items.DropdownElements = Library:Create( "ScrollingFrame" , {
                         Parent = Library.Other;
                         Size = dim2(0, 0, 0, 0);
                         Name = "\0";
@@ -3908,8 +3908,15 @@
                         BorderColor3 = rgb(0, 0, 0);
                         BorderSizePixel = 0;
                         AutomaticSize = Enum.AutomaticSize.Y;
+                        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                        CanvasSize = dim2(0, 0, 0, 0);
+                        ScrollBarThickness = 2;
+                        ScrollBarImageColor3 = themes.preset.accent;
+                        ScrollBarImageTransparency = 0.2;
+                        ScrollingDirection = Enum.ScrollingDirection.Y;
                         BackgroundColor3 = themes.preset.outline
                     }); Library:Themify(Items.DropdownElements, "outline", "BackgroundColor3")
+                    Library:Themify(Items.DropdownElements, "accent", "ScrollBarImageColor3")
                     
                     Items.Inline = Library:Create( "Frame" , {
                         Parent = Items.DropdownElements;
@@ -3944,6 +3951,7 @@
                 -- 
             end 
 
+            local MAX_DROPDOWN_HEIGHT = 150
             function Cfg.RenderOption(text)
                 local Button = Library:Create( "TextButton" , {
                     FontFace = Library.Font;
@@ -3986,16 +3994,25 @@
                 end
 
                 Items.DropdownElements.Position = dim2(0, Items.Outline.AbsolutePosition.X, 0, Items.Outline.AbsolutePosition.Y + 80)
-                                Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, 0)
+                Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, 0)
                 Items.DropdownElements.Visible = bool 
                 Items.DropdownElements.Parent = bool and Library.Items or Library.Other; 
+
+                if bool then
+                    Items.DropdownElements.AutomaticSize = Enum.AutomaticSize.Y
+                    task.defer(function()
+                        local contentHeight = Items.DropdownHolder.AbsoluteSize.Y + 4
+                        local maxHeight = MAX_DROPDOWN_HEIGHT
+                        local finalHeight = math.min(contentHeight, maxHeight)
+                        Items.DropdownElements.AutomaticSize = Enum.AutomaticSize.None
+                        Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, finalHeight)
+                    end)
+                end
 
                 if not Cfg.Multi then 
                     Items.Icon.Text = bool and "+" or "-"
                 end
 
-                -- Cfg.Tween(bool)
-                
                 Library.OpenElement = Cfg
             end
             
@@ -5186,5 +5203,4 @@
     Library.ConfigManager = ConfigManager
 
 return Library, Notifications, themes, ConfigManager
-
 

@@ -1937,7 +1937,7 @@
                         PaddingLeft = dim(0, 5)
                     });
                     
-                    Library:Create( "ImageLabel" , {
+                    Items.WatermarkIcon = Library:Create( "ImageLabel" , {
                         BorderColor3 = rgb(0, 0, 0);
                         Parent = Items.Watermark;
                         Image = "rbxassetid://133601737414791";
@@ -2002,6 +2002,13 @@
 
             function Cfg.ChangeWatermarkTitle(text)
                 Items.WatermarkTitle.Text = text
+            end
+
+            function Cfg.ChangeWatermarkIcon(iconId)
+                if type(iconId) == "string" and #iconId > 0 then
+                    local image = iconId:match("^rbxassetid://") and iconId or "rbxassetid://" .. iconId
+                    Items.WatermarkIcon.Image = image
+                end
             end
 
             function Cfg.ToggleStatus(bool) 
@@ -3900,7 +3907,7 @@
                 -- 
                 
                 -- Element Holder
-                    Items.DropdownElements = Library:Create( "ScrollingFrame" , {
+                    Items.DropdownElements = Library:Create( "Frame" , {
                         Parent = Library.Other;
                         Size = dim2(0, 0, 0, 0);
                         Name = "\0";
@@ -3908,15 +3915,8 @@
                         BorderColor3 = rgb(0, 0, 0);
                         BorderSizePixel = 0;
                         AutomaticSize = Enum.AutomaticSize.Y;
-                        AutomaticCanvasSize = Enum.AutomaticSize.Y;
-                        CanvasSize = dim2(0, 0, 0, 0);
-                        ScrollBarThickness = 2;
-                        ScrollBarImageColor3 = themes.preset.accent;
-                        ScrollBarImageTransparency = 0.2;
-                        ScrollingDirection = Enum.ScrollingDirection.Y;
                         BackgroundColor3 = themes.preset.outline
                     }); Library:Themify(Items.DropdownElements, "outline", "BackgroundColor3")
-                    Library:Themify(Items.DropdownElements, "accent", "ScrollBarImageColor3")
                     
                     Items.Inline = Library:Create( "Frame" , {
                         Parent = Items.DropdownElements;
@@ -3935,14 +3935,8 @@
                         BorderColor3 = rgb(0, 0, 0);
                         Size = dim2(1, -2, 1, -2);
                         BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    });
-                    
-                    local gradient = Library:Create( "UIGradient" , {
-                        Rotation = 90;
-                        Parent = Items.DropdownHolder;
-                        Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
-                    }); Library:SaveGradient(gradient, "Selected");
+                        BackgroundColor3 = themes.preset.inline
+                    }); Library:Themify(Items.DropdownHolder, "inline", "BackgroundColor3")
                     
                     Library:Create( "UIListLayout" , {
                         Parent = Items.DropdownHolder;
@@ -3951,7 +3945,6 @@
                 -- 
             end 
 
-            local MAX_DROPDOWN_HEIGHT = 150
             function Cfg.RenderOption(text)
                 local Button = Library:Create( "TextButton" , {
                     FontFace = Library.Font;
@@ -3994,25 +3987,16 @@
                 end
 
                 Items.DropdownElements.Position = dim2(0, Items.Outline.AbsolutePosition.X, 0, Items.Outline.AbsolutePosition.Y + 80)
-                Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, 0)
+                                Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, 0)
                 Items.DropdownElements.Visible = bool 
                 Items.DropdownElements.Parent = bool and Library.Items or Library.Other; 
-
-                if bool then
-                    Items.DropdownElements.AutomaticSize = Enum.AutomaticSize.Y
-                    task.defer(function()
-                        local contentHeight = Items.DropdownHolder.AbsoluteSize.Y + 4
-                        local maxHeight = MAX_DROPDOWN_HEIGHT
-                        local finalHeight = math.min(contentHeight, maxHeight)
-                        Items.DropdownElements.AutomaticSize = Enum.AutomaticSize.None
-                        Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, finalHeight)
-                    end)
-                end
 
                 if not Cfg.Multi then 
                     Items.Icon.Text = bool and "+" or "-"
                 end
 
+                -- Cfg.Tween(bool)
+                
                 Library.OpenElement = Cfg
             end
             
@@ -4194,6 +4178,78 @@
             function Cfg.Set(Text)
                 Items.Name.Text = Text
             end 
+
+            return setmetatable(Cfg, Library)
+        end
+        
+        function Library:LiveLabel(properties)
+            local Cfg = {
+                Name = properties.Name or "LiveLabel",
+                Update = properties.Update or function() return "N/A" end,
+                Interval = properties.Interval or 0.1,
+                Items = {},
+                Running = false,
+            }
+
+            local Items = Cfg.Items; do 
+                Items.Label = Library:Create( "TextButton" , {
+                    LayoutOrder = 1;
+                    FontFace = Library.Font;
+                    TextColor3 = rgb(0, 0, 0);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Text = "";
+                    Parent = self.Items.GroupElements or self.Items.Elements;
+                    BackgroundTransparency = 1;
+                    Name = "\0";
+                    Size = dim2(1, 0, 0, 11);
+                    BorderSizePixel = 0;
+                    TextSize = 14;
+                    BackgroundColor3 = rgb(255, 255, 255)
+                });
+                
+                Items.Name = Library:Create( "TextLabel" , {
+                    FontFace = Library.Font;
+                    TextColor3 = themes.preset.text_color;
+                    BorderColor3 = rgb(0, 0, 0);
+                    Text = Cfg.Name;
+                    Parent = Items.Label;
+                    BackgroundTransparency = 1;
+                    Name = "\0";
+                    BorderSizePixel = 0;
+                    AutomaticSize = Enum.AutomaticSize.XY;
+                    TextSize = 12;
+                    BackgroundColor3 = rgb(255, 255, 255)
+                });
+                
+                Library:Create( "UIStroke" , {
+                    Parent = Items.Name;
+                    LineJoinMode = Enum.LineJoinMode.Miter
+                });
+            end 
+
+            function Cfg.Set(Text)
+                Items.Name.Text = Text
+            end
+
+            function Cfg.Start()
+                if Cfg.Running then return end
+                Cfg.Running = true
+                task.spawn(function()
+                    while Cfg.Running do
+                        local ok, text = pcall(Cfg.Update)
+                        if ok and text then
+                            Items.Name.Text = Cfg.Name .. ": " .. tostring(text)
+                        end
+                        task.wait(Cfg.Interval)
+                    end
+                end)
+            end
+
+            function Cfg.Stop()
+                Cfg.Running = false
+            end
+
+            Cfg.Start()
 
             return setmetatable(Cfg, Library)
         end
@@ -4822,22 +4878,86 @@
             Section:Button({Name = "Save", Callback = function() 
                 writefile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg", Library:GetConfig())
                 Library:UpdateConfigList()
-                Notifications:Create({Name = "Saved Config (" ..  Library.Directory .. "/configs/" .. ConfigText .. ".cfg" .. ")"}) 
+                Notifications:Create({Name = "Saved: " .. ConfigText}) 
+            end})
+
+            Section:Button({Name = "Overwrite", Callback = function() 
+                local path = Library.Directory .. "/configs/" .. ConfigText .. ".cfg"
+                if not isfile(path) then
+                    Notifications:Create({Name = "Config not found: " .. ConfigText})
+                    return
+                end
+                writefile(path, Library:GetConfig())
+                Library:UpdateConfigList()
+                Notifications:Create({Name = "Overwrote: " .. ConfigText}) 
             end})
 
             Section:Button({Name = "Load", Callback = function() 
-                Library:LoadConfig(readfile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg"))  
+                local path = Library.Directory .. "/configs/" .. ConfigText .. ".cfg"
+                if not isfile(path) then
+                    Notifications:Create({Name = "Config not found: " .. ConfigText})
+                    return
+                end
+                Library:LoadConfig(readfile(path))  
                 Library:UpdateConfigList() 
-                Notifications:Create({Name = "Loaded Config (" ..  Library.Directory .. "/configs/" .. ConfigText .. ".cfg" .. ")"}) 
+                Notifications:Create({Name = "Loaded: " .. ConfigText}) 
             end})
 
             Section:Button({Name = "Delete", Callback = function() 
-                delfile(Library.Directory .. "/configs/" .. ConfigText .. ".cfg")  
+                local path = Library.Directory .. "/configs/" .. ConfigText .. ".cfg"
+                if not isfile(path) then
+                    Notifications:Create({Name = "Config not found: " .. ConfigText})
+                    return
+                end
+                delfile(path)  
                 Library:UpdateConfigList() 
-                Notifications:Create({Name = "Deleted Config (" ..  Library.Directory .. "/configs/" .. ConfigText .. ".cfg" .. ")"}) 
+                Notifications:Create({Name = "Deleted: " .. ConfigText}) 
             end})
 
-            -- Silent Execute: read persisted state from a small file
+            local autoLoadPath = Library.Directory .. "/auto_load.dat"
+            local autoLoadConfig = nil
+            pcall(function()
+                if isfile(autoLoadPath) then
+                    autoLoadConfig = readfile(autoLoadPath)
+                    if autoLoadConfig == "" or autoLoadConfig == "nil" then
+                        autoLoadConfig = nil
+                    end
+                end
+            end)
+
+            local autoLoadOptions = {"None"}
+            for _, c in ConfigManager:ListConfigs() do
+                table.insert(autoLoadOptions, c)
+            end
+
+            Section:Dropdown({
+                Name = "Auto Load Config",
+                Options = autoLoadOptions,
+                Default = autoLoadConfig or "None",
+                Flag = "AutoLoadConfig",
+                Callback = function(option)
+                    if option == "None" then
+                        ConfigManager:RemoveAutoLoad()
+                        Notifications:Create({Name = "Auto-load disabled"})
+                    else
+                        ConfigManager:SetAutoLoad(option)
+                        Notifications:Create({Name = "Auto-load set: " .. option})
+                    end
+                end
+            })
+
+            if autoLoadConfig and autoLoadConfig ~= "None" then
+                local cfgPath = Library.Directory .. "/configs/" .. autoLoadConfig .. ".cfg"
+                if isfile(cfgPath) then
+                    local ok, json = pcall(readfile, cfgPath)
+                    if ok and json and #json > 0 then
+                        pcall(function() Library:LoadConfig(json) end)
+                        Notifications:Create({Name = "Auto-loaded: " .. autoLoadConfig})
+                    end
+                end
+            end
+
+                        -- Silent Execute: read persisted state from a small file
             -- so it survives script re-execution.
             local silentPath = Library.Directory .. "/silent_execute.dat"
             local silentEnabled = false
@@ -4895,6 +5015,7 @@
             Section:Toggle({Name = "Toggle Status", Flag = "Status", Callback = window.ToggleStatus})
             Section:Textbox({Name = "Custom Menu Name", Callback = window.ChangeTitle, Default = window.Name, Placeholder = "Title name here..."})
             Section:Textbox({Name = "Custom Watermark Name", Callback = window.ChangeWatermarkTitle, Default = window.Name .. ".lua", Placeholder = "Title name here..."})
+            Section:Textbox({Name = "Watermark Icon ID", Callback = window.ChangeWatermarkIcon, Default = "133601737414791", Placeholder = "Enter asset ID..."})
             Section:Dropdown({Name = "Tweening Style", Options = {"Linear", "Sine", "Back", "Quad", "Quart", "Quint", "Bounce", "Elastic", "Exponential", "Circular", "Cubic"}, Flag = "LibraryEasingStyle", Default = "Quint", Callback = function(Option)
                 Library.EasingStyle = Enum.EasingStyle[Option]
             end});
@@ -5196,6 +5317,36 @@
             end
         end
         return list
+    end
+
+    function ConfigManager:SetAutoLoad(name)
+        local path = self.Folder .. "/auto_load.dat"
+        pcall(function()
+            writefile(path, tostring(name))
+        end)
+    end
+
+    function ConfigManager:RemoveAutoLoad()
+        local path = self.Folder .. "/auto_load.dat"
+        pcall(function()
+            if isfile(path) then
+                delfile(path)
+            end
+        end)
+    end
+
+    function ConfigManager:GetAutoLoad()
+        local path = self.Folder .. "/auto_load.dat"
+        local name = nil
+        pcall(function()
+            if isfile(path) then
+                name = readfile(path)
+                if name == "" or name == "nil" then
+                    name = nil
+                end
+            end
+        end)
+        return name
     end
 
     -- Expose globally (matches how Library and Themes are exposed)

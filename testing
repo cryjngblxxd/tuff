@@ -17,7 +17,7 @@
 
 -- Library init
     getgenv().Library = {
-        Directory = "Bbot v3",
+        Directory = "AvenirV2",
         Folders = {
             "/fonts",
             "/configs",

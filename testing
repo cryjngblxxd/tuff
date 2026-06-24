@@ -15,9 +15,14 @@
     local insert = table.insert  -- used by Library:ConvertEnum
 -- 
 
--- Library init
+-- Library init — unload any previous instance so re-executing
+-- the script removes the old UI and keeps the new one.
+    if getgenv().Library and getgenv().Library._Unload then
+        pcall(getgenv().Library._Unload)
+    end
+
     getgenv().Library = {
-        Directory = "AvenirV2",
+        Directory = "Bbot v3",
         Folders = {
             "/fonts",
             "/configs",
@@ -28,7 +33,8 @@
         Notifications = {Notifs = {}},
         OpenElement = {}; -- type: table or userdata
         EasingStyle = Enum.EasingStyle.Quint;
-        TweeningSpeed = 0.25
+        TweeningSpeed = 0.25;
+        IsMobile = InputService.TouchEnabled and not InputService.MouseEnabled;
     }
     
     local themes = {
@@ -130,38 +136,131 @@
     local Notifications = Library.Notifications 
 
     local Fonts = {}; do
-        function RegisterFont(Name, Weight, Style, Asset)
-            if not isfile(Asset.Id) then
-                writefile(Asset.Id, Asset.Font)
+        Library.FontList = {
+            {Name = "FS Tahoma 8px", File = "fs-tahoma-8px.ttf", Weight = 400},
+            {Name = "Hanken Grotesk", File = "HankenGrotesk-SemiBold.ttf", Weight = 600},
+            {Name = "Inter Medium", File = "Inter_28pt-Medium.ttf", Weight = 500},
+            {Name = "Inter SemiBold", File = "Inter_28pt-SemiBold.ttf", Weight = 600},
+            {Name = "Light Modern", File = "Light Modern.ttf", Weight = 300},
+            {Name = "Minecraftia", File = "Minecraftia-Regular.ttf", Weight = 400},
+            {Name = "ProggyClean", File = "ProggyClean.ttf", Weight = 400},
+            {Name = "ProggyTiny", File = "ProggyTiny.ttf", Weight = 400},
+            {Name = "Rubik", File = "Rubik-Regular.ttf", Weight = 400},
+            {Name = "Tahoma Modern Bold", File = "Tahoma-Modern-Bold.ttf", Weight = 700},
+            {Name = "Tahoma Modern", File = "Tahoma-Modern.ttf", Weight = 400},
+            {Name = "Verdana", File = "Verdana-Font.ttf", Weight = 400},
+            {Name = "Open Sans PX", File = "open-sans-px.ttf", Weight = 400},
+            {Name = "Smallest Pixel 7", File = "smallest_pixel-7.ttf", Weight = 400},
+            {Name = "Tahoma Bold", File = "tahoma_bold.ttf", Weight = 700},
+        }
+
+        -- Track every instance that uses Library.Font so we can update
+        -- them all when the user picks a new font.
+        Library.FontInstances = {}
+
+        function Library:RegisterFont(fontInfo)
+            local id = "avenir_font_" .. fontInfo.File
+            local fontPath = id
+            local metaPath = id .. ".font"
+
+            if not isfile(fontPath) then
+                local data = game:HttpGet("https://github.com/i77lhm/storage/raw/refs/heads/main/fonts/" .. fontInfo.File)
+                writefile(fontPath, data)
             end
 
-            if isfile(Name .. ".font") then
-                delfile(Name .. ".font")
+            if isfile(metaPath) then
+                delfile(metaPath)
             end
 
             local Data = {
-                name = Name,
+                name = fontInfo.Name,
                 faces = {
                     {
                         name = "Normal",
-                        weight = Weight,
-                        style = Style,
-                        assetId = getcustomasset(Asset.Id),
+                        weight = fontInfo.Weight or 400,
+                        style = "Normal",
+                        assetId = getcustomasset(fontPath),
                     },
                 },
             }
 
-            writefile(Name .. ".font", HttpService:JSONEncode(Data))
-
-            return getcustomasset(Name .. ".font");
+            writefile(metaPath, HttpService:JSONEncode(Data))
+            return getcustomasset(metaPath)
         end
-        
-        local Verdana = RegisterFont("Verawdawdawdwaddana", 400, "Normal", {
-            Id = "Verdanawdawdwada.ttf",
-            Font = game:HttpGet("https://github.com/i77lhm/storage/raw/refs/heads/main/fonts/fs-tahoma-8px.ttf"),
-        })
 
-        Library.Font = Font.new(Verdana, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+        function Library:TrackFont(instance)
+            if instance and instance:IsA("GuiObject") then
+                self.FontInstances[#self.FontInstances + 1] = instance
+                instance:SetAttribute("AvenirTrackedFont", true)
+            end
+        end
+
+        function Library:SetFont(fontName)
+            for _, info in self.FontList do
+                if info.Name == fontName then
+                    local asset = self:RegisterFont(info)
+                    self.Font = Font.new(asset, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+                    self.CurrentFont = fontName
+
+                    -- Persist the font choice so it's used on next execute
+                    pcall(function()
+                        writefile(self.Directory .. "/font_choice.dat", fontName)
+                    end)
+
+                    -- Update every existing text instance to the new font
+                    for _, inst in self.FontInstances do
+                        if inst and inst.Parent then
+                            pcall(function()
+                                inst.FontFace = self.Font
+                            end)
+                        end
+                    end
+
+                    -- Also scan the ScreenGui for anything we missed
+                    if self.Items then
+                        for _, desc in self.Items:GetDescendants() do
+                            if desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox") then
+                                pcall(function()
+                                    desc.FontFace = self.Font
+                                end)
+                            end
+                        end
+                    end
+
+                    return
+                end
+            end
+        end
+
+        -- Default font: FS Tahoma 8px (now at index 1)
+        local defaultFont = Library.FontList[1]
+
+        -- Check if the user previously chose a different font and load it
+        local savedFontName = nil
+        pcall(function()
+            local fontPath = Library.Directory .. "/font_choice.dat"
+            if isfile(fontPath) then
+                savedFontName = readfile(fontPath)
+            end
+        end)
+
+        if savedFontName and savedFontName ~= "" then
+            -- Find the saved font in the list
+            local foundFont = nil
+            for _, info in Library.FontList do
+                if info.Name == savedFontName then
+                    foundFont = info
+                    break
+                end
+            end
+            if foundFont then
+                defaultFont = foundFont
+            end
+        end
+
+        local defaultAsset = Library:RegisterFont(defaultFont)
+        Library.Font = Font.new(defaultAsset, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+        Library.CurrentFont = defaultFont.Name
     end
 --
 
@@ -1290,6 +1389,68 @@
             return math.floor(num * Multiplier + 0.5) / Multiplier
         end
 
+        function Library:CreateTooltip(text)
+            if not Library.TooltipFrame then
+                Library.TooltipFrame = Library:Create( "TextLabel" , {
+                    Parent = Library.Items;
+                    Name = "\0";
+                    Visible = false;
+                    ZIndex = 9999;
+                    BackgroundTransparency = 0;
+                    BorderSizePixel = 0;
+                    FontFace = Library.Font;
+                    TextColor3 = themes.preset.text_color;
+                    TextSize = 12;
+                    AutomaticSize = Enum.AutomaticSize.XY;
+                    BackgroundColor3 = themes.preset.inline;
+                })
+                Library:Create( "UIStroke" , {
+                    Parent = Library.TooltipFrame;
+                    Color = themes.preset.outline;
+                    LineJoinMode = Enum.LineJoinMode.Miter;
+                })
+                Library:Create( "UIPadding" , {
+                    Parent = Library.TooltipFrame;
+                    PaddingTop = dim(0, 3);
+                    PaddingBottom = dim(0, 3);
+                    PaddingLeft = dim(0, 5);
+                    PaddingRight = dim(0, 5);
+                })
+                Library:Connection(InputService.InputChanged, function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseMovement then
+                        if Library.TooltipFrame.Visible then
+                            local mousePos = InputService:GetMouseLocation()
+                            Library.TooltipFrame.Position = dim2(0, mousePos.X + 8, 0, mousePos.Y + 8)
+                        end
+                    end
+                end)
+            end
+            return Library.TooltipFrame
+        end
+
+        function Library:ShowTooltip(text)
+            local tip = self:CreateTooltip()
+            tip.Text = text
+            tip.Visible = true
+            local mousePos = InputService:GetMouseLocation()
+            tip.Position = dim2(0, mousePos.X + 8, 0, mousePos.Y + 8)
+        end
+
+        function Library:HideTooltip()
+            if Library.TooltipFrame then
+                Library.TooltipFrame.Visible = false
+            end
+        end
+
+        function Library:AttachTooltip(guiObject, text)
+            Library:Connection(guiObject.MouseEnter, function()
+                Library:ShowTooltip(text)
+            end)
+            Library:Connection(guiObject.MouseLeave, function()
+                Library:HideTooltip()
+            end)
+        end
+
         function Library:Themify(instance, theme, property)
             table.insert(themes.utility[theme][property], instance)
         end
@@ -1383,13 +1544,15 @@
             getgenv().Themes = nil 
             getgenv().ConfigManager = nil 
         end
+
+        Library._Unload = Library.Unload
     --
     
     -- Library element functions
         function Library:Window(properties)
             local Cfg = {
-                Name = properties.Name or "nebula";
-                Size = properties.Size or dim2(0, 455, 0, 605);
+                Name = properties.Name or "Avenir";
+                Size = properties.Size or (Library.IsMobile and dim2(0, 550, 0, 350) or dim2(0, 455, 0, 605));
                 TabInfo;
                 Items = {};
             }
@@ -2957,6 +3120,7 @@
                     Position = dim2(0, 6, 0, 26);
                     Size = dim2(1, -12, 0, 0);
                     BorderSizePixel = 0;
+                    ZIndex = 10;
                     AutomaticSize = Enum.AutomaticSize.Y;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });     Library:Themify(Items.Elements, "text_outline", "BackgroundColor3")   
@@ -3833,8 +3997,8 @@
                         BorderColor3 = rgb(0, 0, 0);
                         Size = dim2(1, -2, 1, -2);
                         BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255)
-                    });
+                        BackgroundColor3 = themes.preset.inline
+                    }); Library:Themify(Items.Background, "inline", "BackgroundColor3")
 
                     Items.InnerText = Library:Create( "TextLabel" , {
                         FontFace = Library.Font;
@@ -3856,12 +4020,6 @@
                         Parent = Items.InnerText;
                         LineJoinMode = Enum.LineJoinMode.Miter
                     });
-
-                    local gradient = Library:Create( "UIGradient" , {
-                        Rotation = 90;
-                        Parent = Items.Background;
-                        Color = rgbseq{rgbkey(0, themes.preset.inline), rgbkey(1, themes.preset.gradient)}
-                    }); Library:SaveGradient(gradient, "Selected");
 
                     Items.Icon = Library:Create( "TextLabel" , {
                         FontFace = Library.Font;
@@ -3907,7 +4065,7 @@
                 -- 
                 
                 -- Element Holder
-                    Items.DropdownElements = Library:Create( "Frame" , {
+                    Items.DropdownElements = Library:Create( "ScrollingFrame" , {
                         Parent = Library.Other;
                         Size = dim2(0, 0, 0, 0);
                         Name = "\0";
@@ -3915,8 +4073,15 @@
                         BorderColor3 = rgb(0, 0, 0);
                         BorderSizePixel = 0;
                         AutomaticSize = Enum.AutomaticSize.Y;
-                        BackgroundColor3 = themes.preset.outline
-                    }); Library:Themify(Items.DropdownElements, "outline", "BackgroundColor3")
+                        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                        CanvasSize = dim2(0, 0, 0, 0);
+                        ScrollBarThickness = 2;
+                        ScrollBarImageColor3 = themes.preset.accent;
+                        ScrollBarImageTransparency = 0.2;
+                        ScrollingDirection = Enum.ScrollingDirection.Y;
+                        BackgroundColor3 = themes.preset.inline
+                    }); Library:Themify(Items.DropdownElements, "inline", "BackgroundColor3")
+                    Library:Themify(Items.DropdownElements, "accent", "ScrollBarImageColor3")
                     
                     Items.Inline = Library:Create( "Frame" , {
                         Parent = Items.DropdownElements;
@@ -3960,12 +4125,7 @@
                     BorderSizePixel = 0;
                     AutomaticSize = Enum.AutomaticSize.XY;
                     TextSize = 12;
-                    BackgroundColor3 = rgb(255, 255, 255)
-                });
-                
-                Library:Create( "UIStroke" , {
-                    Parent = Button;
-                    LineJoinMode = Enum.LineJoinMode.Miter
+                    BackgroundColor3 = themes.preset.inline
                 });
                 
                 Library:Create( "UIPadding" , {
@@ -3981,22 +4141,31 @@
                 return Button
             end
             
+            local MAX_DROPDOWN_HEIGHT = 150
             function Cfg.SetVisible(bool)
                 if Library.OpenElement ~= Cfg then 
                     Library:CloseElement()
                 end
 
                 Items.DropdownElements.Position = dim2(0, Items.Outline.AbsolutePosition.X, 0, Items.Outline.AbsolutePosition.Y + 80)
-                                Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, 0)
+                Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, 0)
                 Items.DropdownElements.Visible = bool 
                 Items.DropdownElements.Parent = bool and Library.Items or Library.Other; 
+
+                if bool then
+                    Items.DropdownElements.AutomaticSize = Enum.AutomaticSize.Y
+                    task.defer(function()
+                        local contentHeight = Items.DropdownHolder.AbsoluteSize.Y + 4
+                        local finalHeight = math.min(contentHeight, MAX_DROPDOWN_HEIGHT)
+                        Items.DropdownElements.AutomaticSize = Enum.AutomaticSize.None
+                        Items.DropdownElements.Size = dim_offset(Items.Outline.AbsoluteSize.X + 1, finalHeight)
+                    end)
+                end
 
                 if not Cfg.Multi then 
                     Items.Icon.Text = bool and "+" or "-"
                 end
 
-                -- Cfg.Tween(bool)
-                
                 Library.OpenElement = Cfg
             end
             
@@ -4500,9 +4669,10 @@
                 
                 -- Mode Holder
                     Items.ModeHolder = Library:Create( "Frame" , {
-                        Parent = Library.Items;
+                        Parent = Library.Other;
                         Size = dim2(0, 150, 0, 44);
                         Name = "\0";
+                        Visible = false;
                         BorderColor3 = rgb(0, 0, 0);
                         BorderSizePixel = 0;
                         AutomaticSize = Enum.AutomaticSize.XY;
@@ -4703,6 +4873,7 @@
                 Library:Tween(Items.Fade, {BackgroundTransparency = 1})
 
                 Items.ModeHolder.Visible = bool 
+                Items.ModeHolder.Parent = bool and Library.Items or Library.Other
                 Items.ModeHolder.Position = dim2(0, Items.KeybindOutline.AbsolutePosition.X + 2, 0, Items.KeybindOutline.AbsolutePosition.Y + 74)
             end
 
@@ -4724,15 +4895,21 @@
                 Cfg.SetVisible(Cfg.Open)
             end)
 
-            Library:Connection(InputService.InputBegan, function(input, game_event) 
+            Library:Connection(InputService.InputBegan, function(input, game_event)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    if (Items.Dropdown.Items.DropdownElements.Visible and Items.ModeHolder.Visible) and not (Library:Hovering(Items.Dropdown.Items.DropdownElements) or Library:Hovering(Items.ModeHolder)) then 
+                    -- Close ModeHolder when clicking anywhere outside it
+                    if Items.ModeHolder.Visible and not Library:Hovering(Items.ModeHolder) and not Library:Hovering(Items.KeybindOutline) then
+                        Cfg.SetVisible(false)
+                        Cfg.Open = false
+                    end
+                    -- Close dropdown when clicking outside both dropdown and keybind
+                    if Items.Dropdown.Items.DropdownElements.Visible and Items.ModeHolder.Visible and not (Library:Hovering(Items.Dropdown.Items.DropdownElements) or Library:Hovering(Items.ModeHolder)) then
                         Items.Dropdown.SetVisible(false)
                         Items.Dropdown.Visible = false
 
                         Cfg.SetVisible(false)
                         Cfg.Open = false;
-                    end 
+                    end
                 end 
                 
                 if not game_event then
@@ -4914,6 +5091,20 @@
                 Notifications:Create({Name = "Deleted: " .. ConfigText}) 
             end})
 
+            Section:Button({Name = "Auto Load This Config", Callback = function()
+                if not ConfigText or ConfigText == "" then
+                    Notifications:Create({Name = "Enter a config name first"})
+                    return
+                end
+                ConfigManager:SetAutoLoad(ConfigText)
+                Notifications:Create({Name = "Auto-load set: " .. ConfigText})
+            end})
+
+            Section:Button({Name = "Remove Auto Load", Callback = function()
+                ConfigManager:RemoveAutoLoad()
+                Notifications:Create({Name = "Auto-load removed"})
+            end})
+
             local autoLoadPath = Library.Directory .. "/auto_load.dat"
             local autoLoadConfig = nil
             pcall(function()
@@ -4924,27 +5115,6 @@
                     end
                 end
             end)
-
-            local autoLoadOptions = {"None"}
-            for _, c in ConfigManager:ListConfigs() do
-                table.insert(autoLoadOptions, c)
-            end
-
-            Section:Dropdown({
-                Name = "Auto Load Config",
-                Options = autoLoadOptions,
-                Default = autoLoadConfig or "None",
-                Flag = "AutoLoadConfig",
-                Callback = function(option)
-                    if option == "None" then
-                        ConfigManager:RemoveAutoLoad()
-                        Notifications:Create({Name = "Auto-load disabled"})
-                    else
-                        ConfigManager:SetAutoLoad(option)
-                        Notifications:Create({Name = "Auto-load set: " .. option})
-                    end
-                end
-            })
 
             if autoLoadConfig and autoLoadConfig ~= "None" then
                 local cfgPath = Library.Directory .. "/configs/" .. autoLoadConfig .. ".cfg"
@@ -4957,7 +5127,11 @@
                 end
             end
 
-                        -- Silent Execute: read persisted state from a small file
+            Section:Button({Name = "Unload UI", Callback = function()
+                Library:Unload()
+            end})
+
+            -- Silent Execute: read persisted state from a small file
             -- so it survives script re-execution.
             local silentPath = Library.Directory .. "/silent_execute.dat"
             local silentEnabled = false
@@ -5021,6 +5195,15 @@
             end});
             Section:Slider({Name = "Tweening Speed", Min = 0, Max = 10, Decimal = 0.01, Suffix = "s", Default = 0.25, Flag = "TweeningSpeed", Callback = function(int)
                 Library.TweeningSpeed = int
+            end})
+
+            local fontOptions = {}
+            for _, f in Library.FontList do
+                fontOptions[#fontOptions + 1] = f.Name
+            end
+            Section:Dropdown({Name = "UI Font", Options = fontOptions, Default = Library.CurrentFont, Flag = "UIFont", Callback = function(fontName)
+                Library:SetFont(fontName)
+                Notifications:Create({Name = "Font changed: " .. fontName})
             end})
 
             Section:Label({Name = "Inline"}):Colorpicker({Flag = "Inline", Callback = function(color, alpha) 
@@ -5091,23 +5274,25 @@
         end
         
         function Notifications:FadeNotifs(path, is_fading)
-            local fading = is_fading and 1 or 0 
-            
-            Library:Tween(path, {BackgroundTransparency = fading})
+            if not path or not path.Parent then return end
+            local fading = is_fading and 1 or 0
+            local Lib = getgenv().Library
+            if not Lib or not Lib.Tween then return end
 
-            for _, instance in path:GetDescendants() do 
-                if not instance:IsA("GuiObject") then 
+            Lib:Tween(path, {BackgroundTransparency = fading})
+
+            for _, instance in path:GetDescendants() do
+                if not instance:IsA("GuiObject") then
                     if instance:IsA("UIStroke") then
-                        Library:Tween(instance, {Transparency = fading})
+                        Lib:Tween(instance, {Transparency = fading})
                     end
-        
                     continue
-                end 
-        
+                end
+
                 if instance:IsA("TextLabel") then
-                    Library:Tween(instance, {TextTransparency = fading})
+                    Lib:Tween(instance, {TextTransparency = fading})
                 elseif instance:IsA("Frame") then
-                    Library:Tween(instance, {BackgroundTransparency = instance.Transparency and 0.6 and is_fading and 1 or 0.6})
+                    Lib:Tween(instance, {BackgroundTransparency = is_fading and 1 or 0})
                 end
             end
         end 
@@ -5213,11 +5398,18 @@
 
             task.spawn(function()
                 task.wait(Cfg.Lifetime)
+                local Lib = getgenv().Library
                 Notifications.Notifs[index] = nil
-                Notifications:FadeNotifs(Items.Outline, true)
-                Library:Tween(Items.Outline, {AnchorPoint = vec2(1, 0)})
+                if Items.Outline and Items.Outline.Parent then
+                    Notifications:FadeNotifs(Items.Outline, true)
+                    if Lib and Lib.Tween then
+                        Lib:Tween(Items.Outline, {AnchorPoint = vec2(1, 0)})
+                    end
+                end
                 task.wait(1)
-                Items.Outline:Destroy() 
+                if Items.Outline and Items.Outline.Parent then
+                    Items.Outline:Destroy()
+                end
             end)
         end
     --
@@ -5321,17 +5513,13 @@
 
     function ConfigManager:SetAutoLoad(name)
         local path = self.Folder .. "/auto_load.dat"
-        pcall(function()
-            writefile(path, tostring(name))
-        end)
+        pcall(function() writefile(path, tostring(name)) end)
     end
 
     function ConfigManager:RemoveAutoLoad()
         local path = self.Folder .. "/auto_load.dat"
         pcall(function()
-            if isfile(path) then
-                delfile(path)
-            end
+            if isfile(path) then delfile(path) end
         end)
     end
 
@@ -5341,9 +5529,7 @@
         pcall(function()
             if isfile(path) then
                 name = readfile(path)
-                if name == "" or name == "nil" then
-                    name = nil
-                end
+                if name == "" or name == "nil" then name = nil end
             end
         end)
         return name
@@ -5354,4 +5540,5 @@
     Library.ConfigManager = ConfigManager
 
 return Library, Notifications, themes, ConfigManager
+
 

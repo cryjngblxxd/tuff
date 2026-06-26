@@ -119,7 +119,6 @@ local Library; do
 
         OpenElement = {},
         Moderators = {},
-        Keybinds = {},
         Guis = {},
         Glows = {}, 
 
@@ -1747,81 +1746,7 @@ local Library; do
             end 
         end 
 
-        do
-            local YOffset = 0 
-            local BiggestX = 0 
 
-            Library.AddHotKey = function(self, Data)
-                Data = Data or {} 
-                
-                local Cfg = {
-                    Lifetime = Data.Lifetime or 5; 
-                    Text = Data.Text or "Keybind";
-
-                    Items = {};
-                    Status = true;
-                    Fade = 2;
-                    Tick = tick();
-                    Index = #self.Keybinds + 1
-                }   
-                
-                local Items = Cfg.Items; do 
-                    Items.Keybind = Library:Create("CanvasGroup",{Parent = self.Window.Items.Elements.Instance; BackgroundTransparency = 1; BorderSizePixel = 0; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
-                    Items.Title = Library:Create("TextLabel",{TextColor3 = Themes.Preset.TextMain; Text = Cfg.Text; Parent = Items.Keybind.Instance; BackgroundTransparency = 1; BorderSizePixel = 0; RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
-                    Items.UIStroke = Library:Create("UIStroke",{Parent = Items.Title.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
-                    Items.UIPadding = Library:Create("UIPadding",{PaddingTop = UDim.new(0, 3); PaddingBottom = UDim.new(0, 3); Parent = Items.Keybind.Instance})
-                end     
-
-                function Cfg:ChangeText(Key, Name, Mode)
-                    Items.Title.Instance.Text = string.format("[%s] %s (%s)", Key, Name, Mode)
-                end 
-
-                function Cfg:SetEnabled(Bool)
-                    Cfg.Status = Bool
-                end
-
-                self.Keybinds[Cfg.Index] = Cfg 
-
-                return setmetatable(Cfg, Library)
-            end 
-
-            Library.LerpKeybinds = function(self)
-                YOffset = 0
-                BiggestX = 0
-
-                if not self.Window then 
-                    return 
-                end 
-
-                if not self.Window.KeybindListVisible then 
-                    return 
-                end 
-
-                for _,Object in self.Keybinds do
-                    Object.Fade = Library:Lerp(Object.Fade, Object.Status and 255 or 0, 0.02)  
-                    local Instance = Object.Items.Keybind.Instance
-
-                    local Offset = UDim2.new(0, 1, 0, 0)
-                    local Transparency = 1 - (1 * (Object.Fade / 255))
-                    
-                    Instance.Position = Offset + UDim2.new(0, -(Instance.AbsoluteSize.X - (Instance.AbsoluteSize.X * (Object.Fade / 255))), 0, YOffset)
-                    Object:SetKeypickerTransparency(Transparency)
-                    
-                    if Object.Status and BiggestX < Instance.AbsoluteSize.X then
-                        BiggestX = math.max(BiggestX, Instance.AbsoluteSize.X * (Object.Fade / 255))
-                    end
-
-                    YOffset += (Instance.AbsoluteSize.Y + 5) * (Object.Fade / 255)
-                end     
-
-                self.Window.Items.Elements.Instance.Size = UDim2.new(1, -8, 0, YOffset)
-                self.Window.Items.KeybindList.Instance.Size = UDim2.new(0, BiggestX + 17, 0, YOffset + 29)
-            end
-
-            Library.SetKeypickerTransparency = function(self, Num) 
-                self.Items.Keybind.Instance.GroupTransparency = Num
-            end 
-        end 
     end
 
     -- // Library Functions
@@ -2850,10 +2775,8 @@ local Library; do
 
                 Tweening = false,
                 Open = true,
-                KeybindListVisible = true,
 
                 Items = {},
-                KeybindElements = {},
 
                 Sections = {},
                 PageCount = 0;
@@ -2879,20 +2802,6 @@ local Library; do
                 Items.TabButtonHolder = Library:Create("Frame",{Parent = Items.TabButtonOutline.Instance; BackgroundTransparency = 1; Size = UDim2.new(1, 0, 1, -2); ZIndex = 2; BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
                 Items.UIListLayout = Library:Create("UIListLayout",{FillDirection = Enum.FillDirection.Horizontal; HorizontalFlex = Enum.UIFlexAlignment.Fill; Parent = Items.TabButtonHolder.Instance; Padding = UDim.new(0, 1); SortOrder = Enum.SortOrder.LayoutOrder; VerticalFlex = Enum.UIFlexAlignment.Fill})
                 
-                Items.KeybindList = Library:Create("CanvasGroup",{GroupTransparency = 0; Visible = true; Parent = Library.HUD.Instance; Size = UDim2.new(0, 200, 0, 100); Position = UDim2.new(0, 30, 0, 350); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3"):Draggify()
-                Items.Inline = Library:Create("Frame",{Parent = Items.KeybindList.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
-                Items.Background = Library:Create("Frame",{Parent = Items.Inline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["SectionBackground"]}):Themify("SectionBackground", "BackgroundColor3")
-                Items.Topbar = Library:Create("Frame",{Parent = Items.Background.Instance; Size = UDim2.new(1, 0, 0, 21); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
-                Items.KeybindListTitle = Library:Create("TextLabel",{TextColor3 = Themes.Preset["Accent"]; Text = 'key<font color = "rgb(255, 255, 255)">binds</font>'; Parent = Items.Topbar.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 4); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
-                Items.UIStroke = Library:Create("UIStroke",{Parent = Items.KeybindListTitle.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
-                Items.Holder = Library:Create("Frame",{Parent = Items.Topbar.Instance; Position = UDim2.new(0, 1, 1, -1); Size = UDim2.new(1, -2, 0, 1); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
-                Items.UIGradient = Library:Create("UIGradient",{Parent = Items.Holder.Instance; Transparency = NumSeq{NumKey(0, 0), NumKey(0.25, 0.75), NumKey(0.5, 1), NumKey(0.75, 0.75), NumKey(1, 0)}})
-                Items.UIGradient = Library:Create("UIGradient",{Rotation = 90; Parent = Items.Topbar.Instance; Color = ColorSeq{ColorKey(0, Color3.fromRGB(38, 38, 38)), ColorKey(1, Color3.fromRGB(25, 25, 25))}})
-                Items.Elements = Library:Create("Frame",{Parent = Items.Background.Instance; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 25); Size = UDim2.new(1, -8, 0, 0); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
-                Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Elements.Instance})
-                Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Inline.Instance})
-                Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.KeybindList.Instance})
-
                 Items.Watermark = Library:Create("CanvasGroup",{GroupTransparency = 1; Parent = Library.HUD.Instance; Size = UDim2.new(0, 0, 0, 0); Position = UDim2.new(0, 50, 0, 50); BorderSizePixel = 0; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3"):Draggify()
                 Items.WatermarkInline = Library:Create("Frame",{Parent = Items.Watermark.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
                 Items.WatermarkBackground = Library:Create("Frame",{Parent = Items.WatermarkInline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
@@ -2905,16 +2814,6 @@ local Library; do
                 Items.AccentLine = Library:Create("Frame",{Parent = Items.Watermark.Instance; Position = UDim2.new(0, 2, 0, 2); Size = UDim2.new(1, -4, 0, 1); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Accent"]}):Themify("Accent", "BackgroundColor3")
             end 
 
-            function Cfg.SetKeybindListVisibility(Bool)
-                Cfg.KeybindListVisible = Bool
-
-                if Bool then 
-                    Items.KeybindList:Tween({GroupTransparency = 0})
-                else 
-                    Items.KeybindList:Tween({GroupTransparency = 1})
-                end 
-            end
-            
             function Cfg.SetWatermarkVisibility(Bool)
                 Items.Watermark:Tween({GroupTransparency = Bool and 0 or 1})
             end
@@ -3715,8 +3614,6 @@ local Library; do
                 Key = Data.Key or Data.Default or nil,
                 Mode = Data.Mode or "Toggle",
                 Active = Data.Active or false,
-                ShowInList = Data.ShowInList or false, 
-
                 Open = false,
                 Tweening = false,
                 Binding,
@@ -3739,7 +3636,6 @@ local Library; do
             }
 
             local Keypicker = setmetatable(Cfg, Library)
-            local KeybindListElement = Library:AddHotKey({})
             local Items = Cfg.Items; do
                 -- // Menu Element
                 Items.ComponentsHolder = self.Items.ComponentsHolder
@@ -3763,13 +3659,6 @@ local Library; do
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Inline.Instance})
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Settings.Instance})
                 local Elements = Items.Background:CreateElements({Size = UDim2.new(1, -8, 0, 0), Position = UDim2.new(0, 4, 0, 25)})
-                Elements:AddToggle({Text = "Show in list", Default = Cfg.ShowInList, Flag = Cfg.Flag .. "_SHOW_IN_LIST", Callback = function(Bool)
-                    if Bool then 
-                        KeybindListElement:SetEnabled(Cfg.Active)
-                    else 
-                        KeybindListElement:SetEnabled(false)
-                    end
-                end})
                 Elements:AddDropdown({Text = "Mode", Options = {"Hold", "Toggle", "Always"}, Default = Cfg.Mode, Flag = Cfg.Flag .. "_MODE", Callback = function(Option)
                     if Cfg.Set then 
                         Cfg.Set(Option)
@@ -3817,12 +3706,6 @@ local Library; do
                 local __text = text and tostring(text):gsub("KeyCode.", ""):gsub("UserInputType.", "") or ""
                 
                 Items.Value.Instance.Text = "["..__text.."]"
-
-                KeybindListElement:ChangeText(__text, Cfg.Text, Cfg.Mode)
-                
-                if Flags[Cfg.Flag .. "_SHOW_IN_LIST"] then  
-                    KeybindListElement:SetEnabled(Cfg.Active)
-                end
 
                 Flags[Cfg.Flag] = {
                     Mode = Cfg.Mode,
@@ -4800,7 +4683,6 @@ local Library; do
             Section:AddToggle({Text = "Watermark", Default = true, Callback = self.SetWatermarkVisibility})
             Section:AddDropdown({Text = "Options", Flag = "WatermarkSettings", Options = {"Title", "Fps", "Ping", "Game Name", "User ID", "LocalPlayer Name", "Date"}, Multi = true, Default = {"Title", "Fps", "Ping"}})
             Section:AddSlider({Text = "Refresh Rate", Flag = "Refresh Rate", Min = 0, Max = 2, Default = 0.1, Suffix = "s", Decimal = 0.01})
-            Section:AddToggle({Text = "Keybind List", Default = true, Callback = self.SetKeybindListVisibility}) 
                 
             local Section = Settings:AddSection({Title = "Theming", Side = 2})
                 for Name,Value in Themes.Preset do 
@@ -4852,9 +4734,115 @@ local Library; do
         end     
 
         Library:LerpObjects()
-        Library:LerpKeybinds()
     end)
 end
 
 return library
 
+local Window = Library:CreateWindow({Title = "OsamaHub", Size = UDim2.new(0, 559, 0, 668),  Position = UDim2.fromScale(0.5, 0), AnchorPoint = Vector2.new(0.5, 0)})
+
+local Combat = Window:AddTab({Title = "Combat", Columns = 2});
+local Visuals = Window:AddTab({Title = "Visuals", Columns = 2});
+local Misc = Window:AddTab({Title = "Misc", Columns = 2});
+
+local Section = Combat:AddSection({Title = "Section", Side = 1})
+local Toggle = Section:AddToggle({ Text = "Toggle", Default = false, Callback = print })
+Section:AddToggle({Text = "Enabled Toggle", Default = true, print })
+
+local DescriptionSection = Combat:AddSection({Title = "Section", Side = 1, Description = "This is a really long description, honestly what do I put here its just for scaling ig."})
+local Toggle = DescriptionSection:AddToggle({ Text = "Toggle", Default = false, Callback = print })
+DescriptionSection:AddToggle({Text = "Enabled Toggle", Default = true, print }):Tooltip({Name = "One lined tooltip which can have loads of text"})
+DescriptionSection:AddToggle({Text = "Tooltip Multiline Toggle", Default = true, print }):Tooltip({Name = "One \nlined tooltip which \ncan have loads of \ntext", MultiLine = true})
+
+Section:AddSlider({Text = "Slider", Min = 0, Max = 100, Rounding = 5, Default = 50, Suffix ="%", Flag = "NewSlider2", Callback = print })
+Section:AddSlider({Text = "Slider", Min = 0, Max = 100, Rounding = 5, Default = 50, Suffix ="%", Flag = "New Slider1", Callback = print })
+Section:AddSlider({Text = "Slider", Min = 0, Max = 1000, Rounding = 0.1, Default = 1, Suffix ="m/s", Flag = "NewSLide43", print })
+Section:AddRangeSlider({Text = "Range Slider", Min = 0, Max = 1000, Rounding = 0.1, Default = {0, 1000}, Flag = "NewSliderRange", Callback = print})
+
+Section:AddInput({Text = "Input", Placeholder = "Placeholder here...", FocusLost = true, ClearTextOnFocus = false, Callback = print})
+Section:AddDropdown({ Text = "Dropdown", Values = { "Option 1", "Option 2", "Option 3", "Option 4" }, Default ="Option 1", Multi = false, Callback = print })
+Section:AddDropdown({ Text = "Dropdown", Values = { "Option 1", "Option 2", "Option 3", "Option 4" }, Default ="Option 1", Multi = true, Callback = print })
+Section:AddDropdown({ Text = "Scrolling", Values = { "Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13" }, Default ="Option 1", Multi = false, Callback = print })
+Section:AddDropdown({ Text = "Scrolling w search", Values = { "Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13" }, Default ="Option 1", Multi = false, Search = true, Callback = print })
+
+Section:AddButton({Text = "Button1", Confirmation = true, print})
+Section:AddButton({Text = "Button1", print}):AddButton({Text = "Button2", print})
+Section:AddButton({Text = "Button1", print}):AddButton({Text = "Button2", print}):AddButton({Text = "Button3", print})
+
+Section:AddKeyPicker({Text = "Keypicker with a longer name", Key = Enum.KeyCode.E, Mode = "Toggle", Active = false, Callback = print})
+Section:AddKeyPicker({Text = "Short Name", Key = Enum.KeyCode.E, Mode = "Toggle", Active = false, Callback = print})
+Section:AddKeyPicker({Text = "Aimbot xyz", Key = Enum.KeyCode.E, Mode = "Toggle", Active = false, Callback = print})
+
+Section:AddColorPicker({Text = "Colorpicker", Default = Color3.fromRGB(255, 0, 0), Transparency = 0.5, Callback = print})
+
+local Section1, Section2, Section3 = Combat:AddMultiSection({Names = {"1", "2", "3"}, Side = 2})
+Section1:AddToggle({Text = "Enabled Toggle", Default = true, print })
+Section1:AddList({Options = {"Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13"}})
+Section1:AddButton({Text = "Test Notification", Callback = function()
+    Library:Notify({Text = "oxy got raped by his boyfriend damage 100", Lifetime = math.random(1, 10)})
+end})
+
+do -- Preview Example
+    local Preview; 
+    local UpdatePreview = function()
+        if not Preview then 
+            return 
+        end 
+
+        Preview.Update()    
+    end; 
+    
+    local Section = Visuals:AddSection({Title = "Features", Side = 1}) do 
+        Section:AddToggle({Text = "Enabled", Flag = "Esp Enabled", Default = false, Callback = UpdatePreview })
+        local Toggle = Section:AddToggle({Text = "Box", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "High Contrast Box", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+        :AddColorPicker({Text = "Low Contrast Box", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+
+        Section:AddToggle({Text = "Box Fill", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Flag = "High Contrast Fill", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+        :AddColorPicker({Text = "Low Contrast Fill", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+        
+        Section:AddToggle({Text = "Box Glow", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "High Contrast Glow", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+        :AddColorPicker({Text = "Low Contrast Glow", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+
+        Section:AddToggle({Text = "Healthbar", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "High Health", Default = Color3.fromRGB(0, 255, 0), Alpha = 0.5, Callback = UpdatePreview})
+        :AddColorPicker({Text = "Mid Health", Default = Color3.fromRGB(255, 165, 0), Alpha = 0.5, Callback = UpdatePreview})
+        :AddColorPicker({Text = "Low Health", Default = Color3.fromRGB(255, 0, 0), Alpha = 0.5, Callback = UpdatePreview})
+
+        Section:AddToggle({Text = "Healthbar Text", Default = false, Callback = UpdatePreview })
+        
+        Section:AddToggle({Text = "Names", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "Names Text Color", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+        
+        Section:AddToggle({Text = "Distance Text", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "Distance Text Color", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+
+        Section:AddToggle({Text = "Weapon Text", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "Weapon Text Color", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+
+        Section:AddToggle({Text = "Flags", Default = false, Callback = UpdatePreview })
+        :AddColorPicker({Text = "Flags Text Color", Default = Color3.fromRGB(255, 255, 255), Alpha = 0.5, Callback = UpdatePreview})
+    end
+
+    local Section = Visuals:AddSection({Title = "Other", Icon = "rbxassetid://74577789385708", Side = 1}) do 
+        Section:AddSlider({Text = "Box Gradient Rotation", Min = -180, Max = 180, Rounding = 1, Default = 0, Suffix ="°", Callback = UpdatePreview })
+        Section:AddSlider({Text = "Box Fill Rotation", Min = -180, Max = 180, Rounding = 1, Default = 0, Suffix ="°", Callback = UpdatePreview })
+        Section:AddSlider({Text = "Box Glow Rotation", Min = -180, Max = 180, Rounding = 1, Default = 0, Suffix ="°", Callback = UpdatePreview })
+    end
+
+    local Section = Visuals:AddSection({Title = "Preview", Side = 2})
+    Preview = Section:AddPreview({Height = 300})
+    UpdatePreview()
+end 
+
+Window:InitPanels()
+
+task.wait(Library.TweeningSpeed)
+
+for Name,Value in Library.Themes.Preset do 
+    Library:Refresh(Name, Value)
+end
+
+Library:AutoLoad()

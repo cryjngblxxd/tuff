@@ -1,6 +1,4 @@
 --[[
-    NAME: Peronahax
-    FOR: All
     
     BASE: 
     AUTO UPDATE PARENT COLORPICKER WITH REPARENTING FUCN
@@ -119,6 +117,7 @@ local Library; do
 
         OpenElement = {},
         Moderators = {},
+        Keybinds = {},
         Guis = {},
         Glows = {}, 
 
@@ -161,7 +160,7 @@ local Library; do
             ["TextMisc"] = Color3.fromRGB(134, 134, 134),
             ["TextMain"] = Color3.fromRGB(160, 160, 160),
 
-            ["Accent"] = Color3.fromRGB(245, 20, 136),
+            ["Accent"] = Color3.fromRGB(119, 119, 119),
         },
         Utility = {},
         GradientsThemes = {}, 
@@ -1746,7 +1745,85 @@ local Library; do
             end 
         end 
 
+        do 
+            local YOffset = 0 
+            local BiggestX = 0 
 
+            Library.AddHotKey = function(self, Data)
+                Data = Data or {} 
+                
+                local Cfg = {
+                    Lifetime = Data.Lifetime or 5; 
+                    Text = Data.Text or "Keybind";
+
+                    Items = {};
+                    Status = true;
+                    Fade = 2;
+                    Tick = tick();
+                    Index = #self.Keybinds + 1
+                }   
+                
+                local Items = Cfg.Items; do 
+                    Items.Keybind = Library:Create("CanvasGroup",{Parent = self.Window.Items.Elements.Instance; BackgroundTransparency = 1; BorderSizePixel = 0; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                    Items.Title = Library:Create("TextLabel",{TextColor3 = Themes.Preset.TextMain; Text = Cfg.Text; Parent = Items.Keybind.Instance; BackgroundTransparency = 1; BorderSizePixel = 0; RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                    Items.UIStroke = Library:Create("UIStroke",{Parent = Items.Title.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
+                    Items.UIPadding = Library:Create("UIPadding",{PaddingTop = UDim.new(0, 3); PaddingBottom = UDim.new(0, 3); Parent = Items.Keybind.Instance})
+                end     
+
+                function Cfg:ChangeText(Key, Name, Mode)
+                    Items.Title.Instance.Text = string.format("[%s] %s (%s)", Key, Name, Mode)
+                end 
+
+                function Cfg:SetEnabled(Bool)
+                    Cfg.Status = Bool
+                end
+
+                self.Keybinds[Cfg.Index] = Cfg 
+
+                return setmetatable(Cfg, Library)
+            end 
+
+            Library.LerpKeybinds = function(self)
+                YOffset = 0
+                BiggestX = 0
+
+                if not self.Window then 
+                    return 
+                end 
+
+                if not self.Window.KeybindListVisible then 
+                    return 
+                end 
+
+                for _,Object in self.Keybinds do
+                    Object.Fade = Library:Lerp(Object.Fade, Object.Status and 255 or 0, 0.02)  
+                    local Instance = Object.Items.Keybind.Instance
+
+                    local Offset = UDim2.new(0, 1, 0, 0)
+                    local Transparency = 1 - (1 * (Object.Fade / 255))
+                    
+                    Instance.Position = Offset + UDim2.new(0, -(Instance.AbsoluteSize.X - (Instance.AbsoluteSize.X * (Object.Fade / 255))), 0, YOffset)
+                    Object:SetKeypickerTransparency(Transparency)
+                    
+                    if Object.Status and BiggestX < Instance.AbsoluteSize.X then
+                        BiggestX = math.max(BiggestX, Instance.AbsoluteSize.X * (Object.Fade / 255))
+                    end
+
+                    YOffset += (Instance.AbsoluteSize.Y + 5) * (Object.Fade / 255)
+                end     
+
+                local TitleWidth = self.Window.Items.KeybindListTitle.Instance.AbsoluteSize.X
+                local MinWidth = TitleWidth + 16
+                local ListWidth = math.max(BiggestX + 17, MinWidth)
+                
+                self.Window.Items.Elements.Instance.Size = UDim2.new(1, -8, 0, YOffset)
+                self.Window.Items.KeybindList.Instance.Size = UDim2.new(0, ListWidth, 0, YOffset + 29)
+            end
+
+            Library.SetKeypickerTransparency = function(self, Num) 
+                self.Items.Keybind.Instance.GroupTransparency = Num
+            end 
+        end 
     end
 
     -- // Library Functions
@@ -1807,8 +1884,21 @@ local Library; do
             end
 
             Library.Round = function(self, num, float)
-                local Multiplier = 1 / (float or 1)
-                return math.floor(num * Multiplier + 0.5) / Multiplier
+                float = float or 1
+                if float == 0 then float = 1 end
+                return math.floor(num / float + 0.5) * float
+            end
+
+            Library.FormatValue = function(self, value, intervals)
+                intervals = intervals or 1
+                if intervals == 0 then intervals = 1 end
+                if intervals >= 1 then
+                    return tostring(math.floor(value + 0.5))
+                end
+                local decimals = math.max(1, math.ceil(-math.log(intervals, 10)))
+                local formatted = string.format("%." .. decimals .. "f", value)
+                formatted = formatted:gsub("(%.%d-)0+$", "%1")
+                return formatted
             end
 
             Library.IsDecimal = function(self, Num)
@@ -2766,8 +2856,11 @@ local Library; do
             Data = Data or {}
 
             local Cfg = {
-                Prefix = Data.Prefix or "perona", 
-                Suffix = Data.Suffix or "hax",
+                Title = Data.Title or "OsamaHub",
+                Prefix = Data.Prefix or "Osama", 
+                Suffix = Data.Suffix or "Hub",
+
+                ToggleKey = Data.ToggleKey or Enum.KeyCode.Insert,
 
                 Size = Data.Size or UDim2.new(0, 506, 0, 661),
 
@@ -2775,6 +2868,7 @@ local Library; do
 
                 Tweening = false,
                 Open = true,
+                KeybindListVisible = true,
 
                 Items = {},
 
@@ -2802,11 +2896,23 @@ local Library; do
                 Items.TabButtonHolder = Library:Create("Frame",{Parent = Items.TabButtonOutline.Instance; BackgroundTransparency = 1; Size = UDim2.new(1, 0, 1, -2); ZIndex = 2; BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
                 Items.UIListLayout = Library:Create("UIListLayout",{FillDirection = Enum.FillDirection.Horizontal; HorizontalFlex = Enum.UIFlexAlignment.Fill; Parent = Items.TabButtonHolder.Instance; Padding = UDim.new(0, 1); SortOrder = Enum.SortOrder.LayoutOrder; VerticalFlex = Enum.UIFlexAlignment.Fill})
                 
+                Items.KeybindList = Library:Create("CanvasGroup",{GroupTransparency = 0; Visible = true; Parent = Library.HUD.Instance; Size = UDim2.new(0, 200, 0, 29); Position = UDim2.new(0, 30, 0, 350); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3"):Draggify()
+                Items.KeybindListInline = Library:Create("Frame",{Parent = Items.KeybindList.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
+                Items.KeybindListBackground = Library:Create("Frame",{Parent = Items.KeybindListInline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["SectionBackground"]}):Themify("SectionBackground", "BackgroundColor3")
+                Items.Topbar = Library:Create("Frame",{Parent = Items.KeybindListBackground.Instance; Size = UDim2.new(1, 0, 0, 21); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                Items.KeybindListTitle = Library:Create("TextLabel",{TextColor3 = Themes.Preset["Accent"]; Text = 'key<font color = "rgb(255, 255, 255)">binds</font>'; Parent = Items.Topbar.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 4); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
+                Items.UIStroke = Library:Create("UIStroke",{Parent = Items.KeybindListTitle.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
+                Items.Holder = Library:Create("Frame",{Parent = Items.Topbar.Instance; Position = UDim2.new(0, 1, 1, -1); Size = UDim2.new(1, -2, 0, 1); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
+                Items.UIGradient = Library:Create("UIGradient",{Parent = Items.Holder.Instance; Transparency = NumSeq{NumKey(0, 0), NumKey(0.25, 0.75), NumKey(0.5, 1), NumKey(0.75, 0.75), NumKey(1, 0)}})
+                Items.UIGradient = Library:Create("UIGradient",{Rotation = 90; Parent = Items.Topbar.Instance; Color = ColorSeq{ColorKey(0, Color3.fromRGB(38, 38, 38)), ColorKey(1, Color3.fromRGB(25, 25, 25))}})
+                Items.Elements = Library:Create("Frame",{Parent = Items.KeybindListBackground.Instance; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 25); Size = UDim2.new(1, -8, 0, 0); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Elements.Instance})
+
                 Items.Watermark = Library:Create("CanvasGroup",{GroupTransparency = 1; Parent = Library.HUD.Instance; Size = UDim2.new(0, 0, 0, 0); Position = UDim2.new(0, 50, 0, 50); BorderSizePixel = 0; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3"):Draggify()
                 Items.WatermarkInline = Library:Create("Frame",{Parent = Items.Watermark.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
                 Items.WatermarkBackground = Library:Create("Frame",{Parent = Items.WatermarkInline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
                 Items.UIGradient = Library:Create("UIGradient",{Rotation = 90; Parent = Items.WatermarkBackground.Instance; Color = ColorSeq{ColorKey(0, Color3.fromRGB(38, 38, 38)), ColorKey(1, Color3.fromRGB(25, 25, 25))}})
-                Items.WatermarkTitle = Library:Create("TextLabel",{TextColor3 = Themes.Preset["Accent"]; Text = 'perona<font color = "rgb(255, 255, 255)">hax | 100 fps | 45 ping</font>'; Parent = Items.WatermarkBackground.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 4); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
+                Items.WatermarkTitle = Library:Create("TextLabel",{TextColor3 = Themes.Preset["Accent"]; Text = 'Osama<font color = "rgb(255, 255, 255)">Hub | 100 fps | 45 ping</font>'; Parent = Items.WatermarkBackground.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 4); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
                 Items.UIStroke = Library:Create("UIStroke",{Parent = Items.WatermarkTitle.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 3); PaddingTop = UDim.new(0, 2); PaddingRight = UDim.new(0, 7); Parent = Items.WatermarkTitle.Instance})
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.WatermarkInline.Instance})
@@ -2814,6 +2920,16 @@ local Library; do
                 Items.AccentLine = Library:Create("Frame",{Parent = Items.Watermark.Instance; Position = UDim2.new(0, 2, 0, 2); Size = UDim2.new(1, -4, 0, 1); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Accent"]}):Themify("Accent", "BackgroundColor3")
             end 
 
+            function Cfg.SetKeybindListVisibility(Bool)
+                Cfg.KeybindListVisible = Bool
+
+                if Bool then 
+                    Items.KeybindList:Tween({GroupTransparency = 0})
+                else 
+                    Items.KeybindList:Tween({GroupTransparency = 1})
+                end 
+            end
+            
             function Cfg.SetWatermarkVisibility(Bool)
                 Items.Watermark:Tween({GroupTransparency = Bool and 0 or 1})
             end
@@ -3282,9 +3398,13 @@ local Library; do
             end
             
             Cfg.Set = function(Value)
+                if type(Value) == "string" then
+                    Value = tonumber(Value)
+                    if not Value then return end
+                end
                 Cfg.Value = math.clamp(Library:Round(Value, Cfg.Intervals), Cfg.Min, Cfg.Max)
 
-                Items.Value.Instance.Text = tostring(Cfg.Value) .. Cfg.Suffix
+                Items.Value.Instance.Text = Library:FormatValue(Cfg.Value, Cfg.Intervals) .. Cfg.Suffix
                 Items.Accent:Tween({ Size = UDim2.new((Cfg.Value - Cfg.Min) / (Cfg.Max - Cfg.Min), 0, 1, 0) }, TweenInfo.new(Library.DraggingSpeed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0))
 
                 Flags[Cfg.Flag] = Cfg.Value
@@ -3388,8 +3508,8 @@ local Library; do
                 Items.UIStroke = Library:Create("UIStroke",{Parent = Items.Title.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
                 Items.ComponentsHolder = Library:Create("Frame",{Parent = Items.Object.Instance; Position = UDim2.new(1, 0, 0, 17); Size = UDim2.new(0, 0, 0, 12); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
                 Items.UIListLayout = Library:Create("UIListLayout",{FillDirection = Enum.FillDirection.Horizontal; HorizontalAlignment = Enum.HorizontalAlignment.Right; Parent = Items.ComponentsHolder.Instance; Padding = UDim.new(0, 4); SortOrder = Enum.SortOrder.LayoutOrder})
-                Items.Max = Library:Create("Frame",{BackgroundTransparency = 1; AnchorPoint = Vector2.new(1, 0); Parent = Items.Accent.Instance; Position = UDim2.new(1, 0, 0, 0); Size = UDim2.new(0, 10, 0, 10); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
-                Items.Min = Library:Create("Frame",{BackgroundTransparency = 1; Parent = Items.Accent.Instance; Size = UDim2.new(0, 10, 0, 10); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                Items.Max = Library:Create("Frame",{Active = true; BackgroundTransparency = 0.999; AnchorPoint = Vector2.new(1, 0); Parent = Items.Accent.Instance; Position = UDim2.new(1, 0, 0, 0); Size = UDim2.new(0, 10, 0, 10); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                Items.Min = Library:Create("Frame",{Active = true; BackgroundTransparency = 0.999; Parent = Items.Accent.Instance; Size = UDim2.new(0, 10, 0, 10); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
             end
 
             Cfg.Set = function(MinValue, MaxValue)
@@ -3411,7 +3531,7 @@ local Library; do
                 local MaxPCT = (MaxValue - Cfg.Min) / (Cfg.Max - Cfg.Min)
                 
                 Items.Accent:Tween({Position = UDim2.fromScale(MinPCT, 0), Size = UDim2.fromScale(MaxPCT - MinPCT, 1)}, TweenInfo.new(Library.DraggingSpeed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0))
-                Items.Value.Instance.Text = string.format("%s%s-%s%s", MinValue, Cfg.Suffix, MaxValue, Cfg.Suffix)
+                Items.Value.Instance.Text = string.format("%s%s-%s%s", Library:FormatValue(MinValue, Cfg.Intervals), Cfg.Suffix, Library:FormatValue(MaxValue, Cfg.Intervals), Cfg.Suffix)
 
                 Cfg.Callback(Cfg.Value)
             end
@@ -3614,6 +3734,8 @@ local Library; do
                 Key = Data.Key or Data.Default or nil,
                 Mode = Data.Mode or "Toggle",
                 Active = Data.Active or false,
+                ShowInList = Data.ShowInList or false,
+
                 Open = false,
                 Tweening = false,
                 Binding,
@@ -3636,6 +3758,7 @@ local Library; do
             }
 
             local Keypicker = setmetatable(Cfg, Library)
+            local KeybindListElement = Library:AddHotKey({Text = Cfg.Text})
             local Items = Cfg.Items; do
                 -- // Menu Element
                 Items.ComponentsHolder = self.Items.ComponentsHolder
@@ -3659,6 +3782,13 @@ local Library; do
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Inline.Instance})
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.Settings.Instance})
                 local Elements = Items.Background:CreateElements({Size = UDim2.new(1, -8, 0, 0), Position = UDim2.new(0, 4, 0, 25)})
+                Elements:AddToggle({Text = "Show in list", Default = Cfg.ShowInList, Flag = Cfg.Flag .. "_SHOW_IN_LIST", Callback = function(Bool)
+                    if Bool then 
+                        KeybindListElement:SetEnabled(Cfg.Active)
+                    else 
+                        KeybindListElement:SetEnabled(false)
+                    end
+                end})
                 Elements:AddDropdown({Text = "Mode", Options = {"Hold", "Toggle", "Always"}, Default = Cfg.Mode, Flag = Cfg.Flag .. "_MODE", Callback = function(Option)
                     if Cfg.Set then 
                         Cfg.Set(Option)
@@ -3706,6 +3836,12 @@ local Library; do
                 local __text = text and tostring(text):gsub("KeyCode.", ""):gsub("UserInputType.", "") or ""
                 
                 Items.Value.Instance.Text = "["..__text.."]"
+
+                KeybindListElement:ChangeText(__text, Cfg.Text, Cfg.Mode)
+                
+                if Flags[Cfg.Flag .. "_SHOW_IN_LIST"] then  
+                    KeybindListElement:SetEnabled(Cfg.Active)
+                end
 
                 Flags[Cfg.Flag] = {
                     Mode = Cfg.Mode,
@@ -4677,12 +4813,14 @@ local Library; do
                 Section:AddInput({Text = "Suffix", Default = Library.Window.Suffix, Callback = function(Text)
                     Library.Window.Suffix = Text
                 end, Flag = "Suffix"})
+                Section:AddKeyPicker({Text = "UI Toggle", Key = Library.Window.ToggleKey, Mode = "Toggle", Active = true, Flag = "UIToggleKey", Callback = function() end})
             end
 
             local Section = Settings:AddSection({Title = "HUD", Side = 2}) do 
             Section:AddToggle({Text = "Watermark", Default = true, Callback = self.SetWatermarkVisibility})
             Section:AddDropdown({Text = "Options", Flag = "WatermarkSettings", Options = {"Title", "Fps", "Ping", "Game Name", "User ID", "LocalPlayer Name", "Date"}, Multi = true, Default = {"Title", "Fps", "Ping"}})
             Section:AddSlider({Text = "Refresh Rate", Flag = "Refresh Rate", Min = 0, Max = 2, Default = 0.1, Suffix = "s", Decimal = 0.01})
+            Section:AddToggle({Text = "Keybind List", Default = true, Callback = self.SetKeybindListVisibility}) 
                 
             local Section = Settings:AddSection({Title = "Theming", Side = 2})
                 for Name,Value in Themes.Preset do 
@@ -4734,6 +4872,25 @@ local Library; do
         end     
 
         Library:LerpObjects()
+        Library:LerpKeybinds()
+    end)
+
+    Library:Connect(Services.UserInputService.InputBegan, function(Input, GameProcessedEvent)
+        if GameProcessedEvent then 
+            return 
+        end 
+
+        if not Library.Window then 
+            return 
+        end 
+
+        local UIToggleFlag = Flags["UIToggleKey"]
+        local ToggleKey = (UIToggleFlag and UIToggleFlag.Key) or Library.Window.ToggleKey
+
+        if Input.KeyCode == ToggleKey then 
+            Library.Window.Open = not Library.Window.Open
+            Library:SetMenuVisible(Library.Window.Open)
+        end 
     end)
 end
 

@@ -1,4 +1,6 @@
 --[[
+    NAME: Peronahax
+    FOR: All
     
     BASE: 
     AUTO UPDATE PARENT COLORPICKER WITH REPARENTING FUCN
@@ -160,7 +162,7 @@ local Library; do
             ["TextMisc"] = Color3.fromRGB(134, 134, 134),
             ["TextMain"] = Color3.fromRGB(160, 160, 160),
 
-            ["Accent"] = Color3.fromRGB(119, 119, 119),
+            ["Accent"] = Color3.fromRGB(146, 84, 0),
         },
         Utility = {},
         GradientsThemes = {}, 
@@ -1689,7 +1691,7 @@ local Library; do
                 }
                 
                 local Items = Cfg.Items; do 
-                    Items.Notification = Library:Create("CanvasGroup",{GroupTransparency = 1; Parent = Library.Items.Instance; Size = UDim2.new(0, 0, 0, 0); Position = UDim2.new(0, 30, 0, 435); BorderSizePixel = 0; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3")
+                    Items.Notification = Library:Create("CanvasGroup",{GroupTransparency = 1; Parent = Library.HUD.Instance; Size = UDim2.new(0, 0, 0, 0); Position = UDim2.new(0, 30, 0, 435); BorderSizePixel = 0; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3")
                     Items.Inline = Library:Create("Frame",{Parent = Items.Notification.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
                     Items.Background = Library:Create("Frame",{Parent = Items.Inline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
                     Items.UIGradient = Library:Create("UIGradient",{Rotation = 90; Parent = Items.Background.Instance; Color = ColorSeq{ColorKey(0, Themes.Preset["High Contrast"]), ColorKey(1, Themes.Preset["Low Contrast"])}})
@@ -2856,7 +2858,7 @@ local Library; do
             Data = Data or {}
 
             local Cfg = {
-                Title = Data.Title or "OsamaHub",
+                Title = Data.Title or ((Data.Prefix or "Osama") .. (Data.Suffix or "Hub")),
                 Prefix = Data.Prefix or "Osama", 
                 Suffix = Data.Suffix or "Hub",
 
@@ -2884,7 +2886,7 @@ local Library; do
                 Items.Inline = Library:Create("Frame",{Parent = Items.Menu.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(54, 54, 54)})
                 Items.Background = Library:Create("Frame",{Parent = Items.Inline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(29, 29, 29)})
 
-                Items.Title = Library:Create("TextLabel",{TextColor3 = Themes.Preset.Accent; Text = Cfg.Title; Parent = Items.Background.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 3, 0, 5); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
+                Items.Title = Library:Create("TextLabel",{TextColor3 = Themes.Preset.Accent; Text = string.format('%s<font color = "rgb(%s, %s, %s)"> ~ %s</font>', Cfg.Title, math.floor(Themes.Preset.TextMain.R * 255), math.floor(Themes.Preset.TextMain.G * 255), math.floor(Themes.Preset.TextMain.B * 255), os.date("%b %d, %Y")); Parent = Items.Background.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 3, 0, 5); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
                 Items.UIStroke = Library:Create("UIStroke",{Parent = Items.Title.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
                 Items.PageHolderOutline = Library:Create("Frame",{Parent = Items.Background.Instance; Position = UDim2.new(0, 3, 0, 22); Size = UDim2.new(1, -6, 1, -25); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(54, 54, 54)})
                 Items.PageHolderInline = Library:Create("Frame",{Parent = Items.PageHolderOutline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, -2); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Outline"]}):Themify("Outline", "BackgroundColor3")
@@ -2912,7 +2914,7 @@ local Library; do
                 Items.WatermarkInline = Library:Create("Frame",{Parent = Items.Watermark.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Themes.Preset["Inline"]}):Themify("Inline", "BackgroundColor3")
                 Items.WatermarkBackground = Library:Create("Frame",{Parent = Items.WatermarkInline.Instance; Position = UDim2.new(0, 1, 0, 1); Size = UDim2.new(1, -2, 1, 0); BorderSizePixel = 0; BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
                 Items.UIGradient = Library:Create("UIGradient",{Rotation = 90; Parent = Items.WatermarkBackground.Instance; Color = ColorSeq{ColorKey(0, Color3.fromRGB(38, 38, 38)), ColorKey(1, Color3.fromRGB(25, 25, 25))}})
-                Items.WatermarkTitle = Library:Create("TextLabel",{TextColor3 = Themes.Preset["Accent"]; Text = 'Osama<font color = "rgb(255, 255, 255)">Hub | 100 fps | 45 ping</font>'; Parent = Items.WatermarkBackground.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 4); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
+                Items.WatermarkTitle = Library:Create("TextLabel",{TextColor3 = Themes.Preset["Accent"]; Text = string.format('%s<font color = "rgb(255, 255, 255)"> | 100 fps | 45 ping</font>', Cfg.Title); Parent = Items.WatermarkBackground.Instance; BorderSizePixel = 0; BackgroundTransparency = 1; Position = UDim2.new(0, 4, 0, 4); RichText = true; AutomaticSize = Enum.AutomaticSize.XY; BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Themify("Accent", "TextColor3")
                 Items.UIStroke = Library:Create("UIStroke",{Parent = Items.WatermarkTitle.Instance; LineJoinMode = Enum.LineJoinMode.Miter})
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 3); PaddingTop = UDim.new(0, 2); PaddingRight = UDim.new(0, 7); Parent = Items.WatermarkTitle.Instance})
                 Items.UIPadding = Library:Create("UIPadding",{PaddingBottom = UDim.new(0, 2); Parent = Items.WatermarkInline.Instance})
@@ -2954,10 +2956,6 @@ local Library; do
 
                 local Parts = {}
 
-                if table.find(Strings, "Title") then
-                    table.insert(Parts, Cfg.Suffix)
-                end
-
                 if table.find(Strings, "Fps") then
                     table.insert(Parts, FPS .. " fps")
                 end
@@ -2984,9 +2982,11 @@ local Library; do
 
                 local FinalText = table.concat(Parts, " | ")
 
+                local TitlePart = table.find(Strings, "Title") and (Cfg.Title .. (FinalText ~= "" and " | " or "")) or ""
+
                 Items.WatermarkTitle.Instance.Text = string.format(
                     '%s<font color = "rgb(%s, %s, %s)">%s</font>', 
-                    table.find(Strings, "Title") and Cfg.Prefix or "", 
+                    TitlePart, 
                     math.floor(Themes.Preset.TextMain.R * 255),
                     math.floor(Themes.Preset.TextMain.G * 255), 
                     math.floor(Themes.Preset.TextMain.B * 255), 
@@ -2994,12 +2994,11 @@ local Library; do
                 )
 
                 Items.Title.Instance.Text = string.format(
-                    '%s<font color = "rgb(%s, %s, %s)">%s ~ %s</font>', 
-                    Cfg.Prefix, 
+                    '%s<font color = "rgb(%s, %s, %s)"> ~ %s</font>', 
+                    Cfg.Title, 
                     math.floor(Themes.Preset.TextMain.R * 255),
                     math.floor(Themes.Preset.TextMain.G * 255), 
                     math.floor(Themes.Preset.TextMain.B * 255), 
-                    Cfg.Suffix,
                     os.date("%b %d, %Y")
                 )
             end)
@@ -4807,12 +4806,9 @@ local Library; do
                 Section:AddSlider({Text = "Tweening Speed", Flag = "Tweening Speed", Min = 0, Max = 2, Default = 0.3, Suffix = "s", Decimal = 0.01, Callback = function(Text) Library.TweeningSpeed = Text  end})
                 Section:AddSlider({Text = "Dragging Speed", Flag = "Dragging Speed", Min = 0, Max = 2, Default = 0.05, Suffix = "s", Decimal = 0.01, Callback = function(Text) Library.DraggingSpeed = Text end})
 
-                Section:AddInput({Text = "Prefix", Default = Library.Window.Prefix, Callback = function(Text)
-                    Library.Window.Prefix = Text
-                end, Flag = "Prefix"})
-                Section:AddInput({Text = "Suffix", Default = Library.Window.Suffix, Callback = function(Text)
-                    Library.Window.Suffix = Text
-                end, Flag = "Suffix"})
+                Section:AddInput({Text = "Title", Default = Library.Window.Title, Callback = function(Text)
+                    Library.Window.Title = Text
+                end, Flag = "Title"})
                 Section:AddKeyPicker({Text = "UI Toggle", Key = Library.Window.ToggleKey, Mode = "Toggle", Active = true, Flag = "UIToggleKey", Callback = function() end})
             end
 
@@ -4895,3 +4891,4 @@ local Library; do
 end
 
 return Library
+

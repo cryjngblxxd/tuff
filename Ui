@@ -1,5 +1,5 @@
 --[[
-    NAME: Peronahax
+    NAME: Venir
     FOR: All
     
     BASE: 
@@ -2857,6 +2857,11 @@ local Library; do
         Library.CreateWindow = function(self, Data)
             Data = Data or {}
 
+            local IsMobile = Services.UserInputService.TouchEnabled and not Services.UserInputService.MouseEnabled
+
+            local DesktopSize = Data.Size or Data.DesktopSize or UDim2.new(0, 506, 0, 661)
+            local MobileSize = Data.MobileSize or UDim2.new(0, 550, 0, 350)
+
             local Cfg = {
                 Title = Data.Title or ((Data.Prefix or "Osama") .. (Data.Suffix or "Hub")),
                 Prefix = Data.Prefix or "Osama", 
@@ -2864,7 +2869,7 @@ local Library; do
 
                 ToggleKey = Data.ToggleKey or Enum.KeyCode.Insert,
 
-                Size = Data.Size or UDim2.new(0, 506, 0, 661),
+                Size = IsMobile and MobileSize or DesktopSize,
 
                 TabInfo,
 
@@ -4257,16 +4262,19 @@ local Library; do
 
             local Cfg = {
                 Items = {};
-                Height = Data.Height or 300; -- so short.. brootal height mog 
+                Height = Data.Height or 300; 
 
-                -- PreviewData
                 EnableInputCamera = true,
                 IsViewing = false,
                 AutoRefresh = false,
                 ZoomMultiplier = 2,
                 AutoRotate = true,
                 RotationSpeed = 0.01,
-                RefreshRate = 30
+                RefreshRate = 30,
+
+                CustomUpdate = nil,
+                CustomRender = nil,
+                TargetModel = Data.TargetModel or nil,
             }
             
             local Model, ViewportCamera, OriginalModel
@@ -4326,9 +4334,14 @@ local Library; do
                 Items.UIListLayout = Library:Create("UIListLayout",{VerticalAlignment = Enum.VerticalAlignment.Bottom; Padding = UDim.new(0, 1); Parent = Items.Bottom.Instance; SortOrder = Enum.SortOrder.LayoutOrder})
             end
 
-            do -- Esp functions 
+            do 
                 Cfg.Update = function()
                     local Flags = Library.Flags 
+
+                    if Cfg.CustomUpdate then 
+                        pcall(Cfg.CustomUpdate, Flags, Items, Cfg)
+                        return 
+                    end
 
                     Items.Main.Instance.Parent = Flags["Esp Enabled"] and Items.Object.Instance or Library.Other.Instance
 
@@ -4373,7 +4386,10 @@ local Library; do
 
             Cfg.StopViewing = function(Refreshing)
                 if Refreshing then 
-                    Items.ViewportFrame.Instance:FindFirstChildOfClass("Model"):Destroy()
+                    local ExistingModel = Items.ViewportFrame.Instance:FindFirstChildOfClass("Model")
+                    if ExistingModel then 
+                        ExistingModel:Destroy()
+                    end
                 else 
                     if ViewportCamera then ViewportCamera = nil end 
                     if Model then Model = nil end 
@@ -4513,22 +4529,20 @@ local Library; do
             end 
 
             Cfg.ChangeHealth = function()
-                if not Library.Window.Open then 
-                    return 
-                end
-
                 local Value = math.abs(math.sin(tick()))
                 local NewValue = EasingStyles[Enum.EasingStyle.Exponential][Enum.EasingDirection.InOut](Value)
 
                 Items.HealthbarFade.Instance.Size = UDim2.new(1, -2, 1 - NewValue, 0)
                 Items.HealthText.Instance.Size = UDim2.new(0, 0, 1 - NewValue, Items.HealthText.Instance.TextBounds.Y - 3)
 
-                local Color = Flags["Low Health"].Color:Lerp(Flags["Mid Health"].Color, NewValue)
-                local Color2 = Color:Lerp(Flags["High Health"].Color, NewValue)
+                local LowHealth = Flags["Low Health"] and Flags["Low Health"].Color or Color3.fromRGB(255, 0, 0)
+                local MidHealth = Flags["Mid Health"] and Flags["Mid Health"].Color or Color3.fromRGB(255, 165, 0)
+                local HighHealth = Flags["High Health"] and Flags["High Health"].Color or Color3.fromRGB(0, 255, 0)
+
+                local Color = LowHealth:Lerp(MidHealth, NewValue)
+                local Color2 = Color:Lerp(HighHealth, NewValue)
                 Items.HealthText.Instance.TextColor3 = Color2
                 Items.HealthText.Instance.Text = Library:Round(NewValue * 100, 1)
-
-                -- Items.HealthbarFade.Instance.Position = UDim2.new(0, 1, Value, 1)
             end
 
             Cfg.Vertices = {
@@ -4610,18 +4624,40 @@ local Library; do
             end
 
             Library:Connect(Services.RunService.RenderStepped, function()
-                if not (ViewportCamera or Model) then 
+                if not (ViewportCamera and Model) then 
                     return 
                 end 
 
-                -- local Parts = {}
-                -- for _, Part in Model:GetChildren() do
-                --     if Part:IsA("BasePart") and Part.Name ~= "HumanoidRootPart" then
-                --         table.insert(Parts, Part)
-                --     end
-                -- end
+                local RootPart = Model:FindFirstChild("HumanoidRootPart")
+                if not RootPart then 
+                    for _, Descendant in Model:GetDescendants() do
+                        if Descendant:IsA("BasePart") then
+                            RootPart = Descendant
+                            break
+                        end
+                    end
+                end
 
-                local Size, Position, OnScreen, Distance = Cfg:BoxSolve(Model.HumanoidRootPart)
+                if not RootPart then 
+                    return 
+                end
+
+                if Cfg.CustomRender then 
+                    local Success, Size, Position = pcall(Cfg.CustomRender, RootPart, ViewportCamera, Items, Cfg)
+                    if Success and Size and Position then 
+                        local Holder = Items.Main.Instance
+                        Holder.Visible = true
+                        Holder.Position = UDim2.new(0.5, 0, 0, Position.Y)
+                        Holder.Size = UDim2.fromOffset(Size.X, Size.Y)
+                    end
+                    Cfg.ChangeHealth() 
+                    return 
+                end
+
+                local Success, Size, Position = pcall(Cfg.BoxSolve, Cfg, RootPart)
+                if not Success or not Size or not Position then 
+                    return 
+                end
 
                 local Holder = Items.Main.Instance
                 Holder.Visible = true
@@ -4632,7 +4668,18 @@ local Library; do
             end)
 
             Cfg.Init()
-            Cfg.ViewModel(Services.Players.LocalPlayer.Character)
+
+            local InitialModel = Cfg.TargetModel or Services.Players.LocalPlayer.Character
+            if InitialModel then 
+                pcall(Cfg.ViewModel, InitialModel)
+            end
+
+            Services.Players.LocalPlayer.CharacterAdded:Connect(function(Character)
+                if not Cfg.TargetModel then 
+                    task.wait(0.5)
+                    pcall(Cfg.ViewModel, Character)
+                end
+            end)
             
             return setmetatable(Cfg, Library)
         end
@@ -4891,4 +4938,5 @@ local Library; do
 end
 
 return Library
+
 

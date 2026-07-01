@@ -1,5 +1,5 @@
 --[[
-    NAME: VENIR
+    NAME: Peronahax
     FOR: All
     
     BASE: 
@@ -544,7 +544,9 @@ local Library; do
                 return  
             end
 
-            Library.Items:TweenDescendants(Bool, self)
+            task.spawn(function()
+                Library.Items:TweenDescendants(Bool, self)
+            end)
 
             Library.Elements.Instance.Enabled = Bool
             self.Open = Bool  
@@ -2498,30 +2500,50 @@ local Library; do
                 end
 
                 local FadingAnimation;
-                for _, obj in Children do
-                    local Index = Library:GetTransparency(obj)
+                local BatchSize = 30
+                local i = 1
+                
+                local function ProcessBatch()
+                    local count = 0
+                    while i <= #Children and count < BatchSize do
+                        local obj = Children[i]
+                        local Index = Library:GetTransparency(obj)
 
-                    if not Index then
-                        continue
-                    end
-
-                    if type(Index) == "table" then
-                        for _, prop in Index do
-                            FadingAnimation = Library:Fade(obj, prop, Bool)
+                        if Index then
+                            if type(Index) == "table" then
+                                for _, prop in Index do
+                                    FadingAnimation = Library:Fade(obj, prop, Bool)
+                                end
+                            else
+                                FadingAnimation = Library:Fade(obj, Index, Bool)
+                            end
                         end
+                        i = i + 1
+                        count = count + 1
+                    end
+                    
+                    if i <= #Children then
+                        task.defer(ProcessBatch)
+                    elseif FadingAnimation then
+                        Library:Connect(FadingAnimation.Completed, function()
+                            Path.Tweening = false
+                            if Instance:IsA("ScreenGui") then 
+                                Instance.Enabled = Bool
+                            else 
+                                Instance.Visible = Bool
+                            end 
+                        end)
                     else
-                        FadingAnimation = Library:Fade(obj, Index, Bool)
+                        Path.Tweening = false
+                        if Instance:IsA("ScreenGui") then 
+                            Instance.Enabled = Bool
+                        else 
+                            Instance.Visible = Bool
+                        end 
                     end
                 end
-
-                Library:Connect(FadingAnimation.Completed, function()
-                    Path.Tweening = false
-                    if Instance:IsA("ScreenGui") then 
-                        Instance.Enabled = Bool
-                    else 
-                        Instance.Visible = Bool
-                    end 
-                end)
+                
+                ProcessBatch()
             end
         end
 
@@ -3289,6 +3311,9 @@ local Library; do
 
             local Toggle = setmetatable(Cfg, Library)
             Toggle:SetupElement(Cfg.Enabled)
+            if Cfg.Enabled then
+                Items.Accent.Instance.BackgroundTransparency = 0
+            end
 
             return setmetatable(Cfg, Library)
         end
@@ -4655,8 +4680,12 @@ local Library; do
                     local Success, Size, Position = pcall(Cfg.CustomRender, RootPart, ViewportCamera, Items, Cfg)
                     if Success and Size and Position then 
                         local Holder = Items.Main.Instance
+                        local VP = Items.ViewportFrame.Instance
+                        local OffsetX = VP.AbsolutePosition.X - Items.Object.Instance.AbsolutePosition.X
+                        local OffsetY = VP.AbsolutePosition.Y - Items.Object.Instance.AbsolutePosition.Y
                         Holder.Visible = true
-                        Holder.Position = UDim2.new(0.5, 0, 0, Position.Y)
+                        local CenterX = Position.X + OffsetX + (Size.X * 0.5)
+                        Holder.Position = UDim2.new(0, CenterX, 0, Position.Y + OffsetY)
                         Holder.Size = UDim2.fromOffset(Size.X, Size.Y)
                     end
                     Cfg.ChangeHealth() 
@@ -4669,8 +4698,12 @@ local Library; do
                 end
 
                 local Holder = Items.Main.Instance
+                local VP = Items.ViewportFrame.Instance
+                local OffsetX = VP.AbsolutePosition.X - Items.Object.Instance.AbsolutePosition.X
+                local OffsetY = VP.AbsolutePosition.Y - Items.Object.Instance.AbsolutePosition.Y
                 Holder.Visible = true
-                Holder.Position = UDim2.new(0.5, 0, 0, Position.Y)
+                local CenterX = Position.X + OffsetX + (Size.X * 0.5)
+                Holder.Position = UDim2.new(0, CenterX, 0, Position.Y + OffsetY)
                 Holder.Size = UDim2.fromOffset(Size.X, Size.Y)
 
                 Cfg.ChangeHealth() 
@@ -4961,3 +4994,4 @@ local Library; do
 end
 
 return Library
+

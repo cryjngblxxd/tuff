@@ -1,5 +1,5 @@
 --[[
-    NAME: Venir
+    NAME: VENIR
     FOR: All
     
     BASE: 
@@ -2736,12 +2736,21 @@ local Library; do
 
             Library.AutoLoad = function(self)
                 self.Window.Tweening = true 
-                local Name = readfile(self.Directory.."/Autoload.txt")
                 
-                if Name ~= "" then 
-                    for i = 1, 2 do 
-                        self:LoadConfig(readfile(self.Directory .. "/Configs/" .. Name .. ".Cfg"))
-                    end 
+                local Success, Name = pcall(function() return readfile(self.Directory.."/Autoload.txt") end)
+                if not Success or not Name or Name == "" then 
+                    self.Window.Tweening = false
+                    return 
+                end 
+                
+                local ConfigSuccess, ConfigData = pcall(function() return readfile(self.Directory .. "/Configs/" .. Name .. ".Cfg") end)
+                if not ConfigSuccess or not ConfigData then 
+                    self.Window.Tweening = false
+                    return 
+                end 
+
+                for i = 1, 2 do 
+                    pcall(self.LoadConfig, self, ConfigData)
                 end 
                 self.Window.Tweening = false 
             end 
@@ -4669,10 +4678,24 @@ local Library; do
 
             Cfg.Init()
 
-            local InitialModel = Cfg.TargetModel or Services.Players.LocalPlayer.Character
-            if InitialModel then 
-                pcall(Cfg.ViewModel, InitialModel)
+            local LoadCharacter = function()
+                local Char = Cfg.TargetModel or Services.Players.LocalPlayer.Character
+                if Char then 
+                    pcall(Cfg.ViewModel, Char)
+                end
             end
+
+            LoadCharacter()
+
+            task.spawn(function()
+                for i = 1, 20 do
+                    task.wait(1)
+                    if Services.Players.LocalPlayer.Character then 
+                        LoadCharacter()
+                        break 
+                    end
+                end
+            end)
 
             Services.Players.LocalPlayer.CharacterAdded:Connect(function(Character)
                 if not Cfg.TargetModel then 
@@ -4938,5 +4961,3 @@ local Library; do
 end
 
 return Library
-
-

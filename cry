@@ -43,7 +43,7 @@ local ModuleHandler = (function()
         if not SYC then return end
         if not SYC.Modules then return end
 
-        if not type(ModuleName) == "string" then return end
+        if type(ModuleName) ~= "string" then return end
 
         local Modules = SYC.Modules
         return Modules[ModuleName]
@@ -589,7 +589,7 @@ local UserInterface = (function()
         coroutine.resume(text_coroutine)
 
         function Configuration:Tab( Tab_Name )
-            if not type(Tab_Name) == "string" then return end
+            if type(Tab_Name) ~= "string" then return end
 
             local TabConfiguration = { Sections = {} }
 
@@ -724,8 +724,8 @@ local UserInterface = (function()
             end)
 
             function TabConfiguration:Section( Section_Name, Side )
-                if not type(Section_Name) == "string" then return end
-                if not type(Side) == "string" then return end
+                if type(Section_Name) ~= "string" then return end
+                if type(Side) ~= "string" then return end
 
                 local SectionSide = Side == "right" and TabConfiguration.Right or TabConfiguration.Left
                 local Options = {}
@@ -2229,9 +2229,13 @@ local UserInterface = (function()
                             end
 
                             function Dropdown:Refresh(tbl)
-                                for _,v in pairs(Dropdown.FValues) do
-                                    v.Objects.Name:Destroy()
-                                    v = nil
+                                for k,v in pairs(Dropdown.FValues) do
+                                    pcall(function()
+                                        if v and v.Objects and v.Objects.Name then
+                                            v.Objects.Name:Destroy()
+                                        end
+                                    end)
+                                    Dropdown.FValues[k] = nil
                                 end
 
                                 Inline.Size = UDim2New(0, 229, 0, 0)
@@ -3820,12 +3824,13 @@ local UserInterface = (function()
         end
         self.Connections = {}
 
-        if self.Instances and self.Instances["1"] then
-            pcall(function() self.Instances["1"]:Destroy() end)
-        end
-
-        for k in pairs(self.Instances) do
-            self.Instances[k] = nil
+        if type(self.Instances) == "table" then
+            if self.Instances["1"] then
+                pcall(function() self.Instances["1"]:Destroy() end)
+            end
+            for k in pairs(self.Instances) do
+                self.Instances[k] = nil
+            end
         end
 
         self.Flags = {}
@@ -3936,9 +3941,11 @@ local Loader = (function()
         local state = {
             Exit = false,
             Completed = Instance.new("BindableEvent"),
+            _gui = nil,
         }
 
         local Loader = Instance.new("ScreenGui")
+        state._gui = Loader
         Loader.Name = "Loader"
         Loader.Parent = coreguiService
 
@@ -4225,9 +4232,8 @@ local Loader = (function()
 
     function LoaderModule:Hide()
         if currentLoader then
-
             pcall(function()
-                if currentLoader._loader then currentLoader._loader:Destroy() end
+                if currentLoader._gui then currentLoader._gui:Destroy() end
             end)
             currentLoader = nil
         end

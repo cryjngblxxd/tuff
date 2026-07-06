@@ -252,10 +252,16 @@ local UserInterface = (function()
             or  { "user" }
 
         local function ChangeText(Object, NewText)
+            -- Guard: after UserInterface:Destroy() clears Instances,
+            -- UI["a"] becomes nil and this coroutine is still alive.
+            -- Without these checks, TweenService:Create throws
+            -- 'Instance is null' on the next 2-second tick.
+            if not Object or Object.Parent == nil then return end
             tweenService:Create(Object, TweenInfo.new(0.2), {TextTransparency = 0.5}):Play()
             Object.Text = NewText
             TaskWait(0.1)
-
+            -- Re-check after the yield: Destroy may have run during TaskWait.
+            if not Object or Object.Parent == nil then return end
             tweenService:Create(Object, TweenInfo.new(0.2), {TextTransparency = 0}):Play()
         end
 
@@ -580,9 +586,16 @@ local UserInterface = (function()
 
         local text_coroutine = coroutine.create(function ()
             while TaskWait() do
+                -- Stop cleanly when the UI is destroyed/rebuilt.
+                if UserInterface._destroyed then return end
                 for i = 1, #Texts do
                     TaskWait(2)
-                    ChangeText(UI["a"], Texts[i])
+                    if UserInterface._destroyed then return end
+                    -- UI["a"] is cleared by UserInterface:Destroy();
+                    -- nil-check before calling ChangeText.
+                    if UI["a"] and UI["a"].Parent then
+                        ChangeText(UI["a"], Texts[i])
+                    end
                 end
             end
         end)
@@ -3850,6 +3863,14 @@ local UserInterface = (function()
     return UserInterface
 end)()
 
+-- Expose UserInterface globally so that scripts loaded via
+-- loadstring() (e.g. the GitHub 'cry' file) can access it.
+-- Without this, UserInterface is a local that only exists in
+-- this file's scope and is nil in any separately-loadstring'd
+-- script, causing 'attempt to index nil with Destroy' at the
+-- very first line of buildMainUI.
+getgenv().UserInterface = UserInterface
+
 local Loader = (function()
     local LoaderModule = {}
     local currentLoader = nil
@@ -4243,4 +4264,5 @@ local Loader = (function()
 end)()
 
 getgenv().Loader = Loader
-
+-- shit be gay 
+return UserInterface, Loader

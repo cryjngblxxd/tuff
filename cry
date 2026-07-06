@@ -8,17 +8,50 @@ if not getgenv().SYC then
     getgenv().SYC = SYC
 end
 
-getgenv().playerService = game:GetService("Players")
-getgenv().coreguiService = game:GetService("CoreGui")
-getgenv().tweenService = game:GetService("TweenService")
-getgenv().inputService = game:GetService("UserInputService")
-getgenv().rsService = game:GetService("RunService")
-getgenv().replicatedStorage = game:GetService("ReplicatedStorage")
-getgenv().textService = game:GetService("TextService")
-getgenv().httpService = game:GetService("HttpService")
-getgenv().userSettings = UserSettings()
-getgenv().userGameSettings = userSettings:GetService("UserGameSettings")
-getgenv().inputManager = game:GetService("VirtualInputManager")
+-- ---- Service references -------------------------------------------------
+-- Use locals for internal use AND mirror to getgenv() so existing code
+-- that reads them as globals still works. Each one is wrapped in pcall
+-- so a single missing service doesn't kill the whole library.
+local _getgenv = getgenv or function() return _G end
+
+local function _svc(name)
+    local ok, s = pcall(function() return game:GetService(name) end)
+    return ok and s or nil
+end
+
+local playerService    = _svc("Players")
+local coreguiService   = _svc("CoreGui")
+local tweenService     = _svc("TweenService")
+local inputService     = _svc("UserInputService")
+local rsService        = _svc("RunService")
+local replicatedStorage = _svc("ReplicatedStorage")
+local textService      = _svc("TextService")
+local httpService      = _svc("HttpService")
+local inputManager     = _svc("VirtualInputManager")
+
+-- UserSettings() is a global constructor that some executors don't expose.
+local userSettings, userGameSettings
+do
+    local ok, us = pcall(function() return UserSettings() end)
+    if ok and us then
+        userSettings = us
+        local ok2, ugs = pcall(function() return us:GetService("UserGameSettings") end)
+        if ok2 then userGameSettings = ugs end
+    end
+end
+
+-- Mirror to getgenv for backwards compat with code that reads them as globals.
+_getgenv().playerService     = playerService
+_getgenv().coreguiService    = coreguiService
+_getgenv().tweenService      = tweenService
+_getgenv().inputService      = inputService
+_getgenv().rsService         = rsService
+_getgenv().replicatedStorage = replicatedStorage
+_getgenv().textService       = textService
+_getgenv().httpService       = httpService
+_getgenv().userSettings      = userSettings
+_getgenv().userGameSettings  = userGameSettings
+_getgenv().inputManager      = inputManager
 
 local LocalPlayer = playerService.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
@@ -4264,5 +4297,6 @@ local Loader = (function()
 end)()
 
 getgenv().Loader = Loader
--- shit be gay 
+
+
 return UserInterface, Loader
